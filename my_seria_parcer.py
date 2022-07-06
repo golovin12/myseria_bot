@@ -1,16 +1,17 @@
-import requests, redis
-from bs4 import BeautifulSoup
-from fake_useragent import UserAgent
-from datetime import datetime, timedelta
-from time import sleep
-from random import randint
-from math import ceil
 import codecs
-
+import redis
+import requests
+from bs4 import BeautifulSoup
+from datetime import datetime, timedelta
+from fake_useragent import UserAgent
+from math import ceil
+from random import randint
+from time import sleep
 
 ua = UserAgent()
 
 date_spisok = ["last_week", "last_month", "last_3month", "last_year", "last_day", "date", "my"]
+
 
 # Функция для добавления и удаления сериалов
 def refactor_serials(user_id, serials, func):
@@ -61,12 +62,13 @@ def refactor_serials(user_id, serials, func):
         print(e)
         return "None"
 
+
 # Проверяет сколько сериалов существует с таким названием
 def proverka_serials(serials):
     try:
         host = find_site_addr()
         user_ag = ua.random
-        otvet = [[],[],[]]
+        otvet = [[], [], []]
         with requests.Session() as sess:
             for serial in serials:
                 s = serial.split()
@@ -97,7 +99,7 @@ def proverka_serials(serials):
         return otvet
     except Exception as e:
         print(e)
-        return [[],[],[]]
+        return [[], [], []]
 
 
 # Выводит информацию о выбранном сериале
@@ -110,11 +112,15 @@ def serial_info(serial, date=None):
     req_serial = requests.get(url_serial)
     soup_serial = BeautifulSoup(req_serial.text, 'lxml')
     informations["num_season"] = soup_serial.find('div', class_="episode-group-name").find("span").text
-    last_seria_link = soup_serial.find('div', class_="page-content").find("div", class_="item-serial").find("div", class_="field-title").find("a").get("href")
+    last_seria_link = soup_serial.find('div', class_="page-content").find("div", class_="item-serial").find("div",
+                                                                                                            class_="field-title").find(
+        "a").get("href")
     informations["last_seria_url"] = last_seria_link
     req_seria = requests.get(last_seria_link)
     soup_seria = BeautifulSoup(req_seria.text, 'lxml')
-    informations["last_seria_name"] = soup_seria.find("div", class_="title-links-wrapper clearfix").find("div", class_="gap-correct").find('h1').text
+    informations["last_seria_name"] = soup_seria.find("div", class_="title-links-wrapper clearfix").find("div",
+                                                                                                         class_="gap-correct").find(
+        'h1').text
     date = soup_seria.find("div", class_="serial-box-description-torrent")
     if date is None:
         date = "Нет информации"
@@ -129,7 +135,9 @@ def serial_info(serial, date=None):
     return informations
 
 
-mounth = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"]
+mounth = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября",
+          "декабря"]
+
 
 # Выводит информацию об отслеживаемых сериалах
 def user_news(user_id, date):
@@ -208,17 +216,14 @@ def user_news(user_id, date):
                 if t != 0:
                     break
 
-                if page%5 == 0:
+                if page % 5 == 0:
                     sleep(3)
                 page += 1
 
-            return(result)
+            return (result)
     except Exception as e:
         print(e)
         return "Пусто"
-
-
-
 
 
 # Позволяет задать дату отслеживания для сериалов
@@ -228,19 +233,17 @@ def add_date(user_id, date):
     user_db[0] = date
     db[f"{user_id}"] = user_db
 
+
 # Функция, сбрасывающая список отслеживаемых сериалов
 def reboot(user_id):
     db = redis.Redis(db=1)
     db[f"{user_id}"] = f"{datetime.today().date()}"
 
+
 def user_info(user_id):
     db = redis.Redis(db=1)
     vihod = db.get(f"{user_id}").decode("utf-8").split(" pplflfltt ")
     return vihod
-
-
-
-
 
 
 # Обновление адреса сайта (адрес берется со страницы ВК)
@@ -272,10 +275,11 @@ def find_site_addr():
             # print("На данный момент нет рабочего адреса")
             return False
 
-# db = redis.Redis(db=1)
-# db["my_seria_addr"] = "http://myseria.net"
-# find_site_addr()
-# print(db.get("my_seria_addr").decode("utf-8"))
+# db = redis.Redis(db=8)
+# # db["my_seria_addr"] = "http://myseria.net"
+# # find_site_addr()
+# for i in db.keys():
+#     print(i)
 
 
 # url = 'http://myseria.net/'
