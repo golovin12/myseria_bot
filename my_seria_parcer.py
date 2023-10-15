@@ -1,14 +1,14 @@
-import codecs
+import re
+from datetime import datetime, timedelta
+from time import sleep
+
 import redis
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
 from fake_useragent import UserAgent
-from math import ceil
-from random import randint
-from time import sleep
 
 ua = UserAgent()
+db = redis.Redis(db=1)
 
 date_spisok = ["last_week", "last_month", "last_3month", "last_year", "last_day", "date", "my"]
 
@@ -17,7 +17,6 @@ date_spisok = ["last_week", "last_month", "last_3month", "last_year", "last_day"
 def refactor_serials(user_id, serials, func):
     try:
         print(user_id)
-        db = redis.Redis(db=1)
         serials = serials.split(":> ")
 
         if str(user_id) not in db:
@@ -99,7 +98,7 @@ def proverka_serials(serials):
         return otvet
     except Exception as e:
         print(e)
-        return [[], [], []]
+        return [[], serials, []]
 
 
 # Выводит информацию о выбранном сериале
@@ -142,7 +141,6 @@ mounth = ["января", "февраля", "марта", "апреля", "ма�
 # Выводит информацию об отслеживаемых сериалах
 def user_news(user_id, date):
     try:
-        db = redis.Redis(db=1)
         user_db = db.get(f"{user_id}").decode("utf-8").split(" pplflfltt ")
         date_db = user_db[0]
         serials_db = user_db[1:]
@@ -228,7 +226,6 @@ def user_news(user_id, date):
 
 # Позволяет задать дату отслеживания для сериалов
 def add_date(user_id, date):
-    db = redis.Redis(db=1)
     user_db = db.get(f"{user_id}").decode("utf-8").split(" pplflfltt ")
     user_db[0] = date
     db[f"{user_id}"] = user_db
@@ -236,44 +233,52 @@ def add_date(user_id, date):
 
 # Функция, сбрасывающая список отслеживаемых сериалов
 def reboot(user_id):
-    db = redis.Redis(db=1)
     db[f"{user_id}"] = f"{datetime.today().date()}"
 
 
 def user_info(user_id):
-    db = redis.Redis(db=1)
     vihod = db.get(f"{user_id}").decode("utf-8").split(" pplflfltt ")
     return vihod
 
 
+def force_update_address(address):
+    address = address.strip()
+    if _address_is_correct(address):
+        db["my_seria_addr"] = address
+        return True
+    return False
+
+
+def _address_is_correct(address: str):
+    if not re.fullmatch(r"^https?:.+", address):
+        return False
+    req_site = requests.get(address)
+    if req_site.status_code == 200:
+        soup_site = BeautifulSoup(req_site.text, 'lxml')
+        proverka_title = str(soup_site.find("head").find("title")).lower()
+        if "myseria" in proverka_title or "сериалы" in proverka_title:
+            return True
+    return False
+
+
 # Обновление адреса сайта (адрес берется со страницы ВК)
 def find_site_addr():
-    db = redis.Redis(db=1)
+    vk_search_is_work = False
     if "my_seria_addr" not in db:
-        db["my_seria_addr"] = "http://myseria.pro"
-    url = db.get("my_seria_addr").decode("utf-8")
-    req_site = requests.get(url)
-    soup_site = BeautifulSoup(req_site.text, 'lxml')
-    proverka_title = soup_site.find("head").find("title").text.split()[0]
-    if proverka_title in ["MySeria", "MySeria—лучшие", "MySeria—", "myseria"]:
-        # and proverka_title not in ["МегаФон", "Мегафон", "МЕГАФОН", "MegaFon", "MEGAFON", "Megafon"]
-        # print("Адрес не изменился")
-        return url
-    else:
+        db["my_seria_addr"] = ""
+    address = db.get("my_seria_addr").decode('utf-8')
+    if _address_is_correct(address):
+        return address
+    if vk_search_is_work:
+        # Код ниже не работает, т.к. убрали нужную инфу из meta(
         url_vk = 'https://vk.com/myserianet'
-        req_vk = requests.get(url_vk)
+        req_vk = requests.get(url_vk, headers={'user-agent': f"{ua.random}"})
         soup_vk = BeautifulSoup(req_vk.text, 'lxml')
         address = soup_vk.find('meta', property="og:description").get('content').split()[2]
-        req_site = requests.get(address)
-        soup_site = BeautifulSoup(req_site.text, 'lxml')
-        proverka_title = soup_site.find("head").find("title").text.split()[0]
-        if proverka_title in ["MySeria", "MySeria—лучшие", "MySeria—", "myseria"]:
-            # print("Адрес изменился на новый")
+        if _address_is_correct(address):
             db["my_seria_addr"] = address
             return address
-        else:
-            # print("На данный момент нет рабочего адреса")
-            return False
+    return False
 
 # db = redis.Redis(db=8)
 # # db["my_seria_addr"] = "http://myseria.net"

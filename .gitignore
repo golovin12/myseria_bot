@@ -1,5 +1,6 @@
 ﻿*.pyc
 *~
 __pycache__
+.idea
 venv
 token_bot
