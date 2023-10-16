@@ -1,3 +1,5 @@
+import asyncio
+import json
 import re
 from datetime import datetime, timedelta
 from time import sleep
@@ -8,64 +10,104 @@ from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
 ua = UserAgent()
-db = redis.Redis(db=1)
+aioredis = redis.asyncio.Redis(db=1)
+redis_client = redis.Redis(db=1)
 
-date_spisok = ["last_week", "last_month", "last_3month", "last_year", "last_day", "date", "my"]
+"""Хранилище:
+{user_id: {serial1: last_search_date,
+           serial2: last_search_date
+           }}
+"""
 
 
-# Функция для добавления и удаления сериалов
-def refactor_serials(user_id, serials, func):
+# todo вынести работу с aioredis в отдельный блок
+async def create_user_if_not_exist(user_id: int) -> bool:
+    return await aioredis.setnx(f"{user_id}_serials", "{}")
+
+
+async def get_user_serials(user_id: int) -> dict:
+    user_serials = await aioredis.get(f"{user_id}_serials")
+    if user_serials:
+        return json.loads(user_serials)
+    return {}
+
+
+async def set_user_serials(user_id: int, serials: dict) -> bool:
+    return await aioredis.set(f"{user_id}_serials", json.dumps(serials))
+
+
+async def get_new_series_by_date(serial_name: str, last_search_date: str):
+    # todo искать новые серии на сайте MySerial и возвращать инфо о них
     try:
-        print(user_id)
-        serials = serials.split(":> ")
+        for i in range(3):
+            await asyncio.sleep(3)
+            yield f"seria{i}"
+    except:
+        yield f'При попытке получения информации о сериале "{serial_name}" произошла ошибка, попробуйте ещё раз.'
 
-        if str(user_id) not in db:
-            # Формат сохранения в базе данных: "date pplflfltt serial1 pplflfltt serial2 pplflfltt serial3"
-            db[f"{user_id}"] = f"{datetime.today().date()}"
 
-        if func == "addserials":
-            user_db = db.get(f"{user_id}").decode("utf-8").split(" pplflfltt ")
-            proverka = proverka_serials(serials)
+async def get_user_new_series(user_id: int, search: str):
+    user_serials = await get_user_serials(user_id)
+    if search != '__all__':
+        if search not in user_serials:
+            yield f'Сериал "{search}" не найден в списке отслеживаемых.'
+            return
+        user_serials = {search: user_serials[search]}
 
-            if len(proverka[1]) == 0:
-                for i in proverka[0]:
-                    if i in user_db:
-                        proverka[0].remove(i)
-                user_db = user_db + proverka[0]
-                db[f"{user_id}"] = " pplflfltt ".join(user_db).lower()
-                return "Ok"
-            else:
-                if len(proverka[0]) != 0:
-                    for i in proverka[0]:
-                        if i in user_db:
-                            proverka[0].remove(i)
-                    user_db = user_db + proverka[0]
-                    db[f"{user_id}"] = " pplflfltt ".join(user_db).lower()
-                return proverka[1]
+    is_have_update = False
+    for serial_name, last_search_date in user_serials.items():
+        async for seria_data in get_new_series_by_date(serial_name, last_search_date):
+            is_have_update = True
+            yield seria_data
+    if not is_have_update:
+        yield 'Новые серии не найдены.'
 
-        elif func == "deleteserials":
-            user_db = db.get(f"{user_id}").decode("utf-8").split(" pplflfltt ")
-            otvet = []
-            for serial in serials:
-                if serial.lower() in user_db and serial.lower() != user_db[0]:
-                    user_db.remove(serial.lower())
-                else:
-                    otvet.append(serial.lower())
 
-            db[f"{user_id}"] = " pplflfltt ".join(user_db).lower()
-            if len(otvet) == 0:
-                return "Ok"
-            else:
-                return otvet
-    except Exception as e:
-        print(e)
-        return "None"
+async def user_add_serial(user_id: int, serial: str) -> str:
+    # todo добавить проверку наличия сериала на сайте MySerial
+    user_serials = await get_user_serials(user_id)
+    user_serials[serial] = datetime.now().strftime('%d.%m.%Y %H:%M')
+    result = await set_user_serials(user_id, user_serials)
+    if result:
+        return f"Сериал {serial} был успешно добавлен!\nМожете указать название другого сериала для добавления."
+    return f"Не удалось добавить сериал {serial}, попробуйте ещё раз."
+    return ("Вы указали не корректное имя сериала (Имя сериала должно точно совпадать с именем на сайте MySeria)\n"
+            f"Сериал, который не вышло добавить: {serial}")
+
+
+async def user_delete_serial(user_id: int, serial: str) -> tuple[str, bool]:
+    user_serials = await get_user_serials(user_id)
+    if serial in user_serials:
+        del user_serials[serial]
+        result = await set_user_serials(user_id, user_serials)
+        if result:
+            return f"Сериал {serial} был успешно удален!\nМожете выбрать ещё сериал для удаления.", True
+        return f"Не удалось удалить сериал {serial}, попробуйте ещё раз.", False
+    return f"Не удалось удалить сериал {serial}, т.к. он не найден в списке отслеживаемых сериалов", False
+
+
+async def force_update_address(address):
+    # todo использовать асинхронный запрос в сеть
+    address = address.strip()
+    req_site = requests.get(address)
+    if req_site.status_code == 200:
+        await aioredis.set("my_seria_url", address)
+        return True
+    return False
+
+
+def get_site_addr():
+    url: bytes = redis_client.get("my_seria_url")
+    if url:
+        return url.decode('utf-8')
+    return 'https://'
 
 
 # Проверяет сколько сериалов существует с таким названием
 def proverka_serials(serials):
+    # todo сделать более отказоустойчивым. Заменить на асинхронные запросы в сеть
     try:
-        host = find_site_addr()
+        host = get_site_addr()
         user_ag = ua.random
         otvet = [[], [], []]
         with requests.Session() as sess:
@@ -102,7 +144,8 @@ def proverka_serials(serials):
 
 
 # Выводит информацию о выбранном сериале
-def serial_info(serial, date=None):
+def get_serial_info(serial, date=None):
+    # todo сделать более отказоустойчивым. Заменить на асинхронные запросы в сеть
     informations = {}
     serial_link = proverka_serials([serial])[2]
     informations["name"] = serial
@@ -139,38 +182,16 @@ mounth = ["января", "февраля", "марта", "апреля", "ма�
 
 
 # Выводит информацию об отслеживаемых сериалах
-def user_news(user_id, date):
+def user_news(user_id, date=None):
+    # todo сделать более отказоустойчивым. Заменить на асинхронные запросы в сеть
     try:
-        user_db = db.get(f"{user_id}").decode("utf-8").split(" pplflfltt ")
-        date_db = user_db[0]
-        serials_db = user_db[1:]
-        if len(serials_db) == 0:
-            return "Пусто"
-        start_date = datetime.today().date()
+        serials_db = ['импульс мира']
+        end_date = (datetime.today() - timedelta(days=1)).date()
 
-        if date in date_spisok[:4] or date in date_spisok[-1]:
-            if date == date_spisok[0]:
-                last_date = timedelta(days=7)
-            elif date == date_spisok[1]:
-                last_date = timedelta(days=31)
-            elif date == date_spisok[2]:
-                last_date = timedelta(days=93)
-            elif date == date_spisok[3]:
-                last_date = timedelta(days=365)
-            else:
-                last_date = start_date - datetime.strptime(date_db, '%Y-%m-%d').date()
-                add_date(user_id, datetime.today().date())
-        elif date.isdigit():
-            last_date = timedelta(days=int(date))
-        else:
-            last_date = start_date - datetime.strptime(date, '%d-%m-%d%Y').date()
-
-        result_date = start_date - last_date
-
-        host = find_site_addr()
+        host = get_site_addr()
         if not host:
             print("Сайт не доступен")
-            return "Пусто"
+            return "Сайт не доступен"
         with requests.Session() as sess:
             page = 1
             result = {}
@@ -192,9 +213,10 @@ def user_news(user_id, date):
                         if m in s:
                             s = s.split(f" {m} ")
                             s = f"{s[1]}-{index}-{s[0]}"
-                            if result_date <= datetime.strptime(s, '%Y-%m-%d').date():
+                            if end_date <= datetime.strptime(s, '%Y-%m-%d').date():
                                 for name_n in page_serials:
                                     name = name_n.find('div', class_="field-title").find('a').text[:-5].lower()
+                                    print(name)
                                     if name in serials_db:
                                         spis = []
                                         if name in result:
@@ -217,96 +239,8 @@ def user_news(user_id, date):
                 if page % 5 == 0:
                     sleep(3)
                 page += 1
-
-            return (result)
+            print(result)
+            return result
     except Exception as e:
         print(e)
-        return "Пусто"
-
-
-# Позволяет задать дату отслеживания для сериалов
-def add_date(user_id, date):
-    user_db = db.get(f"{user_id}").decode("utf-8").split(" pplflfltt ")
-    user_db[0] = date
-    db[f"{user_id}"] = user_db
-
-
-# Функция, сбрасывающая список отслеживаемых сериалов
-def reboot(user_id):
-    db[f"{user_id}"] = f"{datetime.today().date()}"
-
-
-def user_info(user_id):
-    vihod = db.get(f"{user_id}").decode("utf-8").split(" pplflfltt ")
-    return vihod
-
-
-def force_update_address(address):
-    address = address.strip()
-    if _address_is_correct(address):
-        db["my_seria_addr"] = address
-        return True
-    return False
-
-
-def _address_is_correct(address: str):
-    if not re.fullmatch(r"^https?:.+", address):
-        return False
-    req_site = requests.get(address)
-    if req_site.status_code == 200:
-        soup_site = BeautifulSoup(req_site.text, 'lxml')
-        proverka_title = str(soup_site.find("head").find("title")).lower()
-        if "myseria" in proverka_title or "сериалы" in proverka_title:
-            return True
-    return False
-
-
-# Обновление адреса сайта (адрес берется со страницы ВК)
-def find_site_addr():
-    vk_search_is_work = False
-    if "my_seria_addr" not in db:
-        db["my_seria_addr"] = ""
-    address = db.get("my_seria_addr").decode('utf-8')
-    if _address_is_correct(address):
-        return address
-    if vk_search_is_work:
-        # Код ниже не работает, т.к. убрали нужную инфу из meta(
-        url_vk = 'https://vk.com/myserianet'
-        req_vk = requests.get(url_vk, headers={'user-agent': f"{ua.random}"})
-        soup_vk = BeautifulSoup(req_vk.text, 'lxml')
-        address = soup_vk.find('meta', property="og:description").get('content').split()[2]
-        if _address_is_correct(address):
-            db["my_seria_addr"] = address
-            return address
-    return False
-
-# db = redis.Redis(db=8)
-# # db["my_seria_addr"] = "http://myseria.net"
-# # find_site_addr()
-# for i in db.keys():
-#     print(i)
-
-
-# url = 'http://myseria.net/'
-# r = requests.get(url)
-# soup_site = BeautifulSoup(r.text, 'lxml')
-# proverka_title = soup_site.find("head").find("title")
-# print(proverka_title)
-# s = "Флэш"
-# story = "Флэш"
-# url = f'http://myseria.pro/?do=search&subaction=search&story={story}'
-# responce = requests.get(url=url)
-# soup = BeautifulSoup(responce.text, "lxml")
-# result = soup.find_all('div', class_='item-search-serial')
-# print(result[0].find('div', class_='item-search-header').find('a').text)
-
-# url = 'http://myseria.pro/series/page/2/'
-# r = requests.get(url)
-# with codecs.open("my_serial_seria.html", "w", "utf-8") as file:
-#     file.write(r.text)
-
-# try:
-#     date = "9-9-1999"
-#     valid_date = datetime.strptime(date, '%d-%m-%Y')
-# except ValueError:
-#     print('Invalid date!')
+        return "Вы ещё не добавили ни один фильм."
