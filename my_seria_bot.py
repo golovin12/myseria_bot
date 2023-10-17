@@ -29,7 +29,7 @@ class MySeria(MySeriaService):
 
     @staticmethod
     async def get_site_addr() -> str:
-        url: bytes = aioredis.get(MY_SERIA_KEY)
+        url: bytes = await aioredis.get(MY_SERIA_KEY)
         if url:
             return url.decode('utf-8')
         return 'https://'
@@ -38,7 +38,7 @@ class MySeria(MySeriaService):
 class User(UserController):
     aioredis = aioredis
     prefix = 'serials'
-    external_service = MySeria
+    external_service_class = MySeria
 
 
 class UserState(StatesGroup):
@@ -202,7 +202,7 @@ async def delete_serial(callback_query: types.CallbackQuery, state: FSMContext):
     is_deleted = await user.delete_serial(serial_name)
     if is_deleted:
         serials = await user.get_serials()
-        keyboard = paginator.get_paginated_keyboard(serials, callback_query.data)
+        keyboard = paginator.get_paginated_keyboard(serials)
         await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=keyboard)
         await callback_query.message.answer(
             f"Сериал {serial_name} был успешно удален!\nМожете выбрать ещё сериал для удаления."

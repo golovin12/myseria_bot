@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import datetime
-from typing import AsyncIterable
+from typing import AsyncIterable, Type
 
 import aiohttp
 import redis
@@ -28,7 +28,7 @@ class AdminController:
 class UserController:
     aioredis: redis.asyncio.Redis
     prefix: str
-    external_service: ExternalService
+    external_service_class: Type[ExternalService]
 
     def __init__(self, user_id: int):
         """
@@ -41,6 +41,7 @@ class UserController:
         """
         self.user_id = user_id
         self._redis_key = f"{self.user_id}_{self.prefix}"
+        self.external_service = self.external_service_class()
 
     async def create_if_not_exist(self) -> None:
         """Добавить запись о пользователе, если её ещё нет"""
@@ -66,8 +67,11 @@ class UserController:
 
     async def add_serial(self, serial_name: str) -> bool:
         """Добавить сериал в список отслеживаемых"""
+        serial_name = serial_name.capitalize()
+        serials = await self.get_serials()
+        if serial_name in serials:
+            return True
         if await self.external_service.exist(serial_name):
-            serials = await self.get_serials()
             serials[serial_name] = datetime.now().strftime('%d.%m.%Y %H:%M')
             await self._set_serials(serials)
             return True
@@ -75,6 +79,7 @@ class UserController:
 
     async def delete_serial(self, serial_name: str) -> bool:
         """Убрать сериал из списка отслеживаемых"""
+        serial_name = serial_name.capitalize()
         serials = await self.get_serials()
         if serials.pop(serial_name, None):
             await self._set_serials(serials)
@@ -84,10 +89,10 @@ class UserController:
     async def get_serial_info(self, serial_name: str) -> str:
         serial = await self.external_service.get_serial_info(serial_name)
         if not serial:
-            return "Не удалось получить информацию о серале, попробуйте позже."
+            return f"Не удалось получить информацию о сериале {serial_name}, попробуйте позже."
         last_seria = serial.last_seria
         return (f'{hbold("Информация о сериале:")}\n{hlink(serial.name, serial.url)}\n'
-                f'{hbold("Количество сезонов:")} {serial.num_seasons}\n'
+                f'{hbold("Последний сезон:")} {serial.last_season}\n'
                 f'{hbold("Последняя серия:")}\n{hlink(last_seria.name, last_seria.url)}\n'
                 f'{hbold("Дата выхода серии:")}\n{last_seria.release_date}\n'
                 f'{hbold("Вышедшие озвучки:")}\n{", ".join(last_seria.voices)}\n')
@@ -115,10 +120,7 @@ class UserController:
     async def _get_new_series_from_date(self, serial_name: str, last_search_date: str) -> AsyncIterable[str]:
         """Получить инфо о новых сериях сериала с выбранной даты"""
         search_date = datetime.strptime(last_search_date, '%d.%m.%Y %H:%M')
-        try:
-            async for seria in self.external_service.get_new_series_from_date(serial_name, search_date):
-                yield (f'{hbold("Серия:")}\n{hlink(seria.name, seria.url)}\n'
-                       f'{hbold("Дата выхода серии:")}\n{seria.release_date}\n'
-                       f'{hbold("Вышедшие озвучки:")}\n{", ".join(seria.voices)}\n')
-        except:
-            yield f'При попытке получения информации о сериале "{serial_name}" произошла ошибка, попробуйте ещё раз.'
+        async for seria in self.external_service.get_new_series_from_date(serial_name, search_date):
+            yield (f'{hbold("Серия:")}\n{hlink(seria.name, seria.url)}\n'
+                   f'{hbold("Дата выхода серии:")}\n{seria.release_date}\n'
+                   f'{hbold("Вышедшие озвучки:")}\n{", ".join(seria.voices)}\n')

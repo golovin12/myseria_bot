@@ -22,7 +22,7 @@ class Seria:
 class Serial:
     name: str
     url: str
-    num_seasons: str
+    last_season: str
     last_seria: Seria
 
 
@@ -75,7 +75,7 @@ class MySeriaService(ExternalService):
                     if last_seria := self._get_seria_by_seria_page(page_data, last_seria_url):
                         return Serial(name=serial_data['name'],
                                       url=serial_url,
-                                      num_seasons=additional_data.get('num_seasons', '-'),
+                                      last_season=additional_data.get('last_season', '-'),
                                       last_seria=last_seria
                                       )
         return None
@@ -104,7 +104,7 @@ class MySeriaService(ExternalService):
                 if serial_link := serial_header.find('a'):
                     found_serial_name = serial_link.text
                     if found_serial_name.lower() == serial_name:
-                        return {'name': found_serial_name, 'url': serial_header.get('href')}
+                        return {'name': found_serial_name, 'url': serial_link.get('href')}
         return {}
 
     def _get_serial_info_by_serial_page(self, page_data: str) -> dict:
@@ -112,7 +112,7 @@ class MySeriaService(ExternalService):
         soup = BeautifulSoup(page_data, 'lxml')
         if last_season_header := soup.find('div', class_="episode-group-name"):
             if las_season_span := last_season_header.find("span"):
-                result["num_seasons"] = las_season_span.text
+                result["last_season"] = las_season_span.text
         if last_seria_block := soup.find('div', class_="item-serial"):
             if last_seria_title := last_seria_block.find("div", class_="field-title"):
                 if last_seria_link := last_seria_title.find("a"):
