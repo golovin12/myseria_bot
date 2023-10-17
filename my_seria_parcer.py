@@ -1,120 +1,148 @@
-import asyncio
-import json
 import re
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from time import sleep
+from typing import AsyncIterable
 
 import aiohttp
-import redis
 import requests
-from aiogram.utils.markdown import hlink
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
-from consts import MY_SERIA_KEY
 
-ua = UserAgent()
-redis_client = redis.Redis(db=1)
+@dataclass
+class Seria:
+    name: str
+    url: str
+    release_date: str
+    voices: list[str]
 
 
-def get_site_addr():
-    url: bytes = redis_client.get(MY_SERIA_KEY)
-    if url:
-        return url.decode('utf-8')
-    return 'https://'
+@dataclass
+class Serial:
+    name: str
+    url: str
+    num_seasons: str
+    last_seria: Seria
 
 
 class ExternalService:
-    async def exist(self, serial: str) -> bool:
-        # todo serial = serial.lower()
+    user_agent: UserAgent
+
+    @staticmethod
+    async def get_site_addr() -> str:
+        """Получить адрес сайта"""
+        ...
+
+    async def exist(self, serial_name: str) -> bool:
+        """Проверяет, есть ли сериал с таким названием"""
         ...
 
     async def get_new_series_from_date(self, serial_name: str, search_date: datetime) -> AsyncIterable[Seria]:
-        # todo
+        """Получить список новых серий у сериала с выбранной конкретной даты"""
         yield ...
+
+    async def get_serial_info(self, serial_name: str) -> [Serial | None]:
+        """Получить информацию о сериале"""
+        ...
 
 
 class MySeriaService(ExternalService):
-    ...
+    def __init__(self):
+        self.headers = {'user-agent': self.user_agent.random}
 
+    async def exist(self, serial_name: str) -> bool:
+        async with aiohttp.ClientSession() as session:
+            page_data = await self._find_serial_on_site(session, serial_name)
+        if self._find_serial_by_page_data(page_data, serial_name):
+            return True
+        return False
 
-# Проверяет сколько сериалов существует с таким названием
-def proverka_serials(serials):
-    # todo сделать более отказоустойчивым. Заменить на асинхронные запросы в сеть
-    try:
-        host = get_site_addr()
-        user_ag = ua.random
-        otvet = [[], [], []]
-        with requests.Session() as sess:
-            for serial in serials:
-                s = serial.split()
-                story = "+".join(s)
-                url = f'{host}/?do=search&subaction=search&story={story}'
-                responce = sess.get(url=url, headers={'user-agent': f"{user_ag}"})
-                soup = BeautifulSoup(responce.text, "lxml")
-                result = soup.find_all('div', class_='item-search-serial')
-                if len(result) == 1:
-                    if result[0].find('div', class_='item-search-header').find('a').text.lower() == serial.lower():
-                        otvet[0].append(serial)
-                        otvet[2] = result[0].find('div', class_='item-search-header').find('a').get('href')
-                    else:
-                        otvet[1].append(serial)
-                elif len(result) == 0:
-                    otvet[1].append(serial)
-                elif len(result) > 1:
-                    c = 0
-                    for item in result:
-                        if item.find('div', class_='item-search-header').find('a').text.lower() == serial.lower():
-                            c = 1
-                            break
-                    if c == 1:
-                        otvet[0].append(serial)
-                        otvet[2] = result[0].find('div', class_='item-search-header').find('a').get('href')
-                    else:
-                        otvet[1].append(serial)
-        return otvet
-    except Exception as e:
-        print(e)
-        return [[], serials, []]
+    async def get_serial_info(self, serial_name: str) -> [Serial | None]:
+        async with aiohttp.ClientSession() as session:
+            page_data = await self._find_serial_on_site(session, serial_name)
+            serial_data = self._find_serial_by_page_data(page_data, serial_name)
+            if serial_url := serial_data.get('url'):
+                # Получение недостающей информации о сериале
+                async with session.get(url=serial_url, headers=self.headers) as response:
+                    page_data = await response.text()
+                additional_data = self._get_serial_info_by_serial_page(page_data)
+                last_seria_url = additional_data.get('last_seria_url')
+                if last_seria_url:
+                    # Получение информации о последней серии
+                    async with session.get(url=last_seria_url, headers=self.headers) as response:
+                        page_data = await response.text()
+                    if last_seria := self._get_seria_by_seria_page(page_data, last_seria_url):
+                        return Serial(name=serial_data['name'],
+                                      url=serial_url,
+                                      num_seasons=additional_data.get('num_seasons', '-'),
+                                      last_seria=last_seria
+                                      )
+        return None
 
+    async def get_new_series_from_date(self, serial_name: str, search_date: datetime) -> AsyncIterable[Seria]:
+        serial = []  # todo
+        for seria in serial:
+            yield seria
 
-# Выводит информацию о выбранном сериале
-async def get_serial_info(serial: str) -> str:
-    # todo сделать более отказоустойчивым. Заменить на асинхронные запросы в сеть
-    informations = {}
-    serial_link = proverka_serials([serial])[2]
-    informations["name"] = serial
-    informations["url"] = serial_link
-    url_serial = serial_link
-    req_serial = requests.get(url_serial)
-    soup_serial = BeautifulSoup(req_serial.text, 'lxml')
-    informations["num_season"] = soup_serial.find('div', class_="episode-group-name").find("span").text
-    last_seria_link = soup_serial.find('div', class_="page-content").find("div", class_="item-serial").find("div",
-                                                                                                            class_="field-title").find(
-        "a").get("href")
-    informations["last_seria_url"] = last_seria_link
-    req_seria = requests.get(last_seria_link)
-    soup_seria = BeautifulSoup(req_seria.text, 'lxml')
-    informations["last_seria_name"] = soup_seria.find("div", class_="title-links-wrapper clearfix").find("div",
-                                                                                                         class_="gap-correct").find(
-        'h1').text
-    date = soup_seria.find("div", class_="serial-box-description-torrent")
-    if date is None:
-        date = "Нет информации"
-    else:
-        date = date.find("div", class_="date-time-description").text
-    informations["date"] = date
-    voices = soup_seria.find("div", class_="sounds-wrapper").find("div", class_="sounds-list").find_all("div")
-    voi_vih = []
-    for i in voices:
-        voi_vih.append(i.text)
-    informations["voices"] = voi_vih
-    info = informations
-    return (f'<b>Информация о сериале:</b> \n{hlink(info["name"], info["url"])}\n'
-           f'<b>Количество сезонов:</b> {info["num_season"]}\n'
-           f'<b>Последняя серия:</b> \n{hlink(info["last_seria_name"], info["last_seria_url"])}\n'
-           f'<b>Дата выхода серии:</b> \n{info["date"]}\n'
-           f'<b>Вышедшие озвучки:</b> \n{", ".join(info["voices"])}\n')
+    async def _find_serial_on_site(self, session: aiohttp.ClientSession, serial_name: str) -> str:
+        serial_search_name = re.sub(' ', '+', serial_name)
+        host = await self.get_site_addr()
+        url = f'{host}/?do=search&subaction=search&story={serial_search_name}'
+        async with session.get(url=url, headers=self.headers) as response:
+            page_data = await response.text()
+        return page_data
+
+    @staticmethod
+    def _find_serial_by_page_data(page_data: str, serial_name: str) -> dict:
+        """Проверяет, есть ли нужный сериал среди найденных"""
+        serial_name = serial_name.lower()
+        soup = BeautifulSoup(page_data, "lxml")
+        found_serials = soup.find_all('div', class_='item-search-serial')
+        for serial_block in found_serials:
+            if serial_header := serial_block.find('div', class_='item-search-header'):
+                if serial_link := serial_header.find('a'):
+                    found_serial_name = serial_link.text
+                    if found_serial_name.lower() == serial_name:
+                        return {'name': found_serial_name, 'url': serial_header.get('href')}
+        return {}
+
+    def _get_serial_info_by_serial_page(self, page_data: str) -> dict:
+        result = {}
+        soup = BeautifulSoup(page_data, 'lxml')
+        if last_season_header := soup.find('div', class_="episode-group-name"):
+            if las_season_span := last_season_header.find("span"):
+                result["num_seasons"] = las_season_span.text
+        if last_seria_block := soup.find('div', class_="item-serial"):
+            if last_seria_title := last_seria_block.find("div", class_="field-title"):
+                if last_seria_link := last_seria_title.find("a"):
+                    if last_seria_url := last_seria_link.get("href"):
+                        result['last_seria_url'] = last_seria_url
+        return result
+
+    def _get_seria_by_seria_page(self, page_data: str, last_seria_url: str) -> [Seria | None]:
+        """Получение инфо о серии со страницы серии"""
+        seria_name = None
+        seria_release = "Нет информации"
+        seria_voices = []
+        soup = BeautifulSoup(page_data, 'lxml')
+        if seria_title_block := soup.find("div", class_="title-links-wrapper clearfix"):
+            if seria_title := seria_title_block.find('h1', class_='page-title'):
+                seria_name = seria_title.text
+        if seria_description_block := soup.find("div", class_="serial-box-description-torrent"):
+            if release_description := seria_description_block.find("div", class_="date-time-description"):
+                seria_release = release_description.text
+        if voices_block := soup.find("div", class_="sounds-wrapper"):
+            if voices_list := voices_block.find("div", class_="sounds-list"):
+                seria_voices = [voice.text for voice in voices_list.find_all("div")]
+        if seria_name is None:
+            return None
+        return Seria(
+            name=seria_name,
+            url=last_seria_url,
+            release_date=seria_release,
+            voices=seria_voices,
+        )
 
 
 mounth = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября",
@@ -128,7 +156,7 @@ def user_news(user_id, date=None):
         serials_db = ['импульс мира']
         end_date = (datetime.today() - timedelta(days=1)).date()
 
-        host = get_site_addr()
+        host = "https://serialrun.ru"
         if not host:
             print("Сайт не доступен")
             return "Сайт не доступен"

@@ -7,14 +7,16 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.storage.redis import RedisStorage
+from fake_useragent import UserAgent
 
 import env
 from consts import ControlCommand, MY_SERIA_KEY
-from my_seria_parcer import get_serial_info, MySeriaService
+from my_seria_parcer import MySeriaService
 from controllers import AdminController, UserController
 from utils import batched, ButtonPaginator
 
 TOKEN = env.TOKEN
+user_agent = UserAgent()
 aioredis = redis.asyncio.Redis(db=1)
 storage = RedisStorage(redis.asyncio.Redis(db=2))
 dp = Dispatcher(storage=storage)
@@ -22,10 +24,21 @@ dp = Dispatcher(storage=storage)
 admin_controller = AdminController(aioredis, MY_SERIA_KEY)
 
 
+class MySeria(MySeriaService):
+    user_agent = user_agent
+
+    @staticmethod
+    async def get_site_addr() -> str:
+        url: bytes = aioredis.get(MY_SERIA_KEY)
+        if url:
+            return url.decode('utf-8')
+        return 'https://'
+
+
 class User(UserController):
     aioredis = aioredis
     prefix = 'serials'
-    external_service = MySeriaService
+    external_service = MySeria
 
 
 class UserState(StatesGroup):
@@ -159,10 +172,19 @@ async def get_new_series(callback_query: types.CallbackQuery, state: FSMContext)
 @dp.message(UserState.add_serials)
 async def add_serial(message: types.Message):
     """Добавление сериала в список отслеживания"""
-    serial = message.text.strip()
+    serial_name = message.text.strip()
     await message.reply("Подождите, сериал проверяется...")
-    result_text = await User(message.from_user.id).add_serial(serial)
-    await message.answer(result_text)
+    is_added = await User(message.from_user.id).add_serial(serial_name)
+    if is_added:
+        await message.answer(
+            f"Сериал {serial_name} был успешно добавлен!\nМожете указать название другого сериала для добавления."
+        )
+    else:
+        url = await MySeria.get_site_addr()
+        await message.answer(
+            f"Не удалось добавить сериал {serial_name} (убедитесь, что сериал с таким названием есть на сайте {url})",
+            disable_web_page_preview=True
+        )
 
 
 @dp.callback_query(UserState.delete_serials)
@@ -175,14 +197,20 @@ async def delete_serial(callback_query: types.CallbackQuery, state: FSMContext):
         return
     data = await state.get_data()
     paginator = ButtonPaginator(data['btn_name'], data['btn_callback'], "#page-")
-    serial = callback_query.data.strip()
+    serial_name = callback_query.data.strip()
     user = User(callback_query.from_user.id)
-    result_text, is_deleted = await user.delete_serial(serial)
+    is_deleted = await user.delete_serial(serial_name)
     if is_deleted:
         serials = await user.get_serials()
         keyboard = paginator.get_paginated_keyboard(serials, callback_query.data)
         await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=keyboard)
-    await callback_query.message.answer(result_text)
+        await callback_query.message.answer(
+            f"Сериал {serial_name} был успешно удален!\nМожете выбрать ещё сериал для удаления."
+        )
+    else:
+        await callback_query.message.answer(
+            f"Не удалось удалить сериал {serial_name}, возможно он отсутствует в списке отслеживаемых сериалов"
+        )
 
 
 @dp.callback_query(UserState.my_serials)
@@ -193,8 +221,8 @@ async def serial_info(callback_query: types.CallbackQuery, state: FSMContext):
         await state.clear()
         await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=None)
         return
-    serial = callback_query.data.strip()
-    info = await get_serial_info(serial)
+    serial_name = callback_query.data.strip()
+    info = await User(callback_query.from_user.id).get_serial_info(serial_name)
     await callback_query.message.answer(info, disable_web_page_preview=True)
 
 
