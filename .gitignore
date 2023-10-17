@@ -3,4 +3,4 @@
 __pycache__
 .idea
 venv
-token_bot
+env.py

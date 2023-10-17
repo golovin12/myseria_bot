@@ -7,19 +7,25 @@ from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.utils.markdown import hlink
 
-from consts import ControlCommand
-from my_seria_parcer import (
-    force_update_address, get_user_new_series, get_user_serials, user_add_serial, create_user_if_not_exist,
-    user_delete_serial, set_user_serials, get_serial_info
-)
-from token_bot import token_bot
-from utils import list_separator, ButtonPaginator
+import env
+from consts import ControlCommand, MY_SERIA_KEY
+from my_seria_parcer import get_serial_info, MySeriaService
+from controllers import AdminController, UserController
+from utils import batched, ButtonPaginator
 
-TOKEN = token_bot.TOKEN  # todo to Env
-storage = RedisStorage(redis.asyncio.Redis(db=5))  # todo pool_size=10, prefix='my_fsm_key'
+TOKEN = env.TOKEN
+aioredis = redis.asyncio.Redis(db=1)
+storage = RedisStorage(redis.asyncio.Redis(db=2))
 dp = Dispatcher(storage=storage)
+
+admin_controller = AdminController(aioredis, MY_SERIA_KEY)
+
+
+class User(UserController):
+    aioredis = aioredis
+    prefix = 'serials'
+    external_service = MySeriaService
 
 
 class UserState(StatesGroup):
@@ -32,10 +38,10 @@ class UserState(StatesGroup):
 @dp.message(Command(ControlCommand.START))
 async def command_start(message: types.Message):
     """Приветствие"""
-    print(f"start command: {message.from_user.id}")
-    await create_user_if_not_exist(message.from_user.id)
-    buttons = [types.KeyboardButton(text=f"/{command}") for command, name in ControlCommand.choices]
-    buttons = list_separator(buttons, 2)
+    print(f"user_id: {message.from_user.id}")
+    await User(message.from_user.id).create_if_not_exist()
+    buttons = (types.KeyboardButton(text=f"/{command}") for command, name in ControlCommand.choices)
+    buttons = batched(buttons, 2)
     keyboard = types.ReplyKeyboardMarkup(
         keyboard=buttons,
         resize_keyboard=True,
@@ -58,13 +64,13 @@ async def command_help(msg: types.Message):
 @dp.message(lambda message: message.text.lower().startswith("#new_addr: "))
 async def force_update_url(message: types.Message):
     """Команда для обновления адреса сайта вручную"""
-    # todo сделать доступ этой к команде только для админов
-    url = message.text.replace('#new_addr: ', '')
-    is_complete = await force_update_address(url)
-    if is_complete:
-        await message.reply(f'Адрес успешно обновлён на: {url}')
-    else:
-        await message.reply('Не удалось обновить адрес')
+    if message.from_user.id == 669355029:  # todo сделать доступ этой к команде только для админов
+        url = message.text.replace('#new_addr: ', '')
+        is_complete = await admin_controller.force_update_url(url)
+        if is_complete:
+            await message.reply(f'Адрес успешно обновлён на: {url}')
+        else:
+            await message.reply('Не удалось обновить адрес')
 
 
 @dp.message(Command(ControlCommand.CANCEL))
@@ -80,7 +86,7 @@ async def command_cancel(message: types.Message, state: FSMContext):
 @dp.message(Command(ControlCommand.REBOOT))
 async def add_serials_command(message: types.Message):
     """Сбрасывает список отслеживаемых сериалов"""
-    await set_user_serials(message.from_user.id, {})
+    await User(message.from_user.id).reboot()
     await message.reply("Информация о Вас успешно сброшена.")
 
 
@@ -91,7 +97,7 @@ async def paginate_serials(callback_query: types.CallbackQuery, state: FSMContex
     # Обновление клавиатуры при пагинации
     await callback_query.answer()
     data = await state.get_data()
-    serials = await get_user_serials(callback_query.from_user.id)
+    serials = await User(callback_query.from_user.id).get_serials()
     paginator = ButtonPaginator(data['btn_name'], data['btn_callback'], "#page-")
     keyboard = paginator.get_paginated_keyboard(serials, callback_query.data)
     await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=keyboard)
@@ -101,7 +107,7 @@ async def paginate_serials(callback_query: types.CallbackQuery, state: FSMContex
 async def command_new_series(message: types.Message, state: FSMContext):
     """Получить информацию о новых сериях"""
     await state.set_state(UserState.new_series)
-    serials = await get_user_serials(message.from_user.id)
+    serials = await User(message.from_user.id).get_serials()
     btn_name, btn_callback = 'Все новые серии', '__all__'
     await state.update_data(btn_name=btn_name, btn_callback=btn_callback)
     keyboard = ButtonPaginator(btn_name, btn_callback).get_paginated_keyboard(serials)
@@ -117,7 +123,7 @@ async def command_add_serials(message: types.Message, state: FSMContext):
 @dp.message(Command(ControlCommand.DELETE_SERIALS))
 async def command_delete_serials(message: types.Message, state: FSMContext):
     await state.set_state(UserState.delete_serials)
-    serials = await get_user_serials(message.from_user.id)
+    serials = await User(message.from_user.id).get_serials()
     btn_name, btn_callback = 'Выход из удаления', '__exit__'
     await state.update_data(btn_name=btn_name, btn_callback=btn_callback)
     keyboard = ButtonPaginator(btn_name, btn_callback).get_paginated_keyboard(serials)
@@ -126,7 +132,7 @@ async def command_delete_serials(message: types.Message, state: FSMContext):
 
 @dp.message(Command(ControlCommand.MY_SERIALS))
 async def command_my_serials(message: types.Message, state: FSMContext):
-    serials = await get_user_serials(user_id=message.from_user.id)
+    serials = await User(message.from_user.id).get_serials()
     if not serials:
         await message.reply("Вы ещё не добавили сериалы для отслеживания. Чтобы добавить, нажмите: /add_serials")
         return
@@ -146,7 +152,7 @@ async def get_new_series(callback_query: types.CallbackQuery, state: FSMContext)
     await callback_query.answer("Подождите, информация собирается...")
     await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=None)
     serial = callback_query.data
-    async for seria_info in get_user_new_series(callback_query.from_user.id, serial):
+    async for seria_info in User(callback_query.from_user.id).get_new_series(serial):
         await callback_query.message.answer(seria_info)
 
 
@@ -155,7 +161,7 @@ async def add_serial(message: types.Message):
     """Добавление сериала в список отслеживания"""
     serial = message.text.strip()
     await message.reply("Подождите, сериал проверяется...")
-    result_text = await user_add_serial(message.from_user.id, serial)
+    result_text = await User(message.from_user.id).add_serial(serial)
     await message.answer(result_text)
 
 
@@ -170,9 +176,10 @@ async def delete_serial(callback_query: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     paginator = ButtonPaginator(data['btn_name'], data['btn_callback'], "#page-")
     serial = callback_query.data.strip()
-    result_text, is_deleted = await user_delete_serial(callback_query.from_user.id, serial)
+    user = User(callback_query.from_user.id)
+    result_text, is_deleted = await user.delete_serial(serial)
     if is_deleted:
-        serials = await get_user_serials(callback_query.from_user.id)
+        serials = await user.get_serials()
         keyboard = paginator.get_paginated_keyboard(serials, callback_query.data)
         await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=keyboard)
     await callback_query.message.answer(result_text)
@@ -187,15 +194,8 @@ async def serial_info(callback_query: types.CallbackQuery, state: FSMContext):
         await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=None)
         return
     serial = callback_query.data.strip()
-    info = get_serial_info(serial)  # todo async
-    await callback_query.message.answer(
-        f'<b>Информация о сериале:</b> \n{hlink(info["name"], info["url"])}\n'
-        f'<b>Количество сезонов:</b> {info["num_season"]}\n'
-        f'<b>Последняя серия:</b> \n{hlink(info["last_seria_name"], info["last_seria_url"])}\n'
-        f'<b>Дата выхода серии:</b> \n{info["date"]}\n'
-        f'<b>Вышедшие озвучки:</b> \n{", ".join(info["voices"])}\n',
-        disable_web_page_preview=True
-    )
+    info = await get_serial_info(serial)
+    await callback_query.message.answer(info, disable_web_page_preview=True)
 
 
 @dp.shutdown()

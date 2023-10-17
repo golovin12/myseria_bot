@@ -4,103 +4,38 @@ import re
 from datetime import datetime, timedelta
 from time import sleep
 
+import aiohttp
 import redis
 import requests
+from aiogram.utils.markdown import hlink
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
+from consts import MY_SERIA_KEY
+
 ua = UserAgent()
-aioredis = redis.asyncio.Redis(db=1)
 redis_client = redis.Redis(db=1)
-
-"""Хранилище:
-{user_id: {serial1: last_search_date,
-           serial2: last_search_date
-           }}
-"""
-
-
-# todo вынести работу с aioredis в отдельный блок
-async def create_user_if_not_exist(user_id: int) -> bool:
-    return await aioredis.setnx(f"{user_id}_serials", "{}")
-
-
-async def get_user_serials(user_id: int) -> dict:
-    user_serials = await aioredis.get(f"{user_id}_serials")
-    if user_serials:
-        return json.loads(user_serials)
-    return {}
-
-
-async def set_user_serials(user_id: int, serials: dict) -> bool:
-    return await aioredis.set(f"{user_id}_serials", json.dumps(serials))
-
-
-async def get_new_series_by_date(serial_name: str, last_search_date: str):
-    # todo искать новые серии на сайте MySerial и возвращать инфо о них
-    try:
-        for i in range(3):
-            await asyncio.sleep(3)
-            yield f"seria{i}"
-    except:
-        yield f'При попытке получения информации о сериале "{serial_name}" произошла ошибка, попробуйте ещё раз.'
-
-
-async def get_user_new_series(user_id: int, search: str):
-    user_serials = await get_user_serials(user_id)
-    if search != '__all__':
-        if search not in user_serials:
-            yield f'Сериал "{search}" не найден в списке отслеживаемых.'
-            return
-        user_serials = {search: user_serials[search]}
-
-    is_have_update = False
-    for serial_name, last_search_date in user_serials.items():
-        async for seria_data in get_new_series_by_date(serial_name, last_search_date):
-            is_have_update = True
-            yield seria_data
-    if not is_have_update:
-        yield 'Новые серии не найдены.'
-
-
-async def user_add_serial(user_id: int, serial: str) -> str:
-    # todo добавить проверку наличия сериала на сайте MySerial
-    user_serials = await get_user_serials(user_id)
-    user_serials[serial] = datetime.now().strftime('%d.%m.%Y %H:%M')
-    result = await set_user_serials(user_id, user_serials)
-    if result:
-        return f"Сериал {serial} был успешно добавлен!\nМожете указать название другого сериала для добавления."
-    return f"Не удалось добавить сериал {serial}, попробуйте ещё раз."
-    return ("Вы указали не корректное имя сериала (Имя сериала должно точно совпадать с именем на сайте MySeria)\n"
-            f"Сериал, который не вышло добавить: {serial}")
-
-
-async def user_delete_serial(user_id: int, serial: str) -> tuple[str, bool]:
-    user_serials = await get_user_serials(user_id)
-    if serial in user_serials:
-        del user_serials[serial]
-        result = await set_user_serials(user_id, user_serials)
-        if result:
-            return f"Сериал {serial} был успешно удален!\nМожете выбрать ещё сериал для удаления.", True
-        return f"Не удалось удалить сериал {serial}, попробуйте ещё раз.", False
-    return f"Не удалось удалить сериал {serial}, т.к. он не найден в списке отслеживаемых сериалов", False
-
-
-async def force_update_address(address):
-    # todo использовать асинхронный запрос в сеть
-    address = address.strip()
-    req_site = requests.get(address)
-    if req_site.status_code == 200:
-        await aioredis.set("my_seria_url", address)
-        return True
-    return False
 
 
 def get_site_addr():
-    url: bytes = redis_client.get("my_seria_url")
+    url: bytes = redis_client.get(MY_SERIA_KEY)
     if url:
         return url.decode('utf-8')
     return 'https://'
+
+
+class ExternalService:
+    async def exist(self, serial: str) -> bool:
+        # todo serial = serial.lower()
+        ...
+
+    async def get_new_series_from_date(self, serial_name: str, search_date: datetime) -> AsyncIterable[Seria]:
+        # todo
+        yield ...
+
+
+class MySeriaService(ExternalService):
+    ...
 
 
 # Проверяет сколько сериалов существует с таким названием
@@ -144,7 +79,7 @@ def proverka_serials(serials):
 
 
 # Выводит информацию о выбранном сериале
-def get_serial_info(serial, date=None):
+async def get_serial_info(serial: str) -> str:
     # todo сделать более отказоустойчивым. Заменить на асинхронные запросы в сеть
     informations = {}
     serial_link = proverka_serials([serial])[2]
@@ -174,7 +109,12 @@ def get_serial_info(serial, date=None):
     for i in voices:
         voi_vih.append(i.text)
     informations["voices"] = voi_vih
-    return informations
+    info = informations
+    return (f'<b>Информация о сериале:</b> \n{hlink(info["name"], info["url"])}\n'
+           f'<b>Количество сезонов:</b> {info["num_season"]}\n'
+           f'<b>Последняя серия:</b> \n{hlink(info["last_seria_name"], info["last_seria_url"])}\n'
+           f'<b>Дата выхода серии:</b> \n{info["date"]}\n'
+           f'<b>Вышедшие озвучки:</b> \n{", ".join(info["voices"])}\n')
 
 
 mounth = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября",

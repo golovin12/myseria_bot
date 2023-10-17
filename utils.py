@@ -1,15 +1,20 @@
+from itertools import islice
 from math import ceil
+from typing import Iterable
 
 from aiogram import types
 
 
-def list_separator(lst: iter, n: int) -> iter:
+def batched(iterable: Iterable, n: int):
     """
-    >>> list_separator([1, 2, 3, 4, 5], 2)
-    [[1, 2], [3, 4], [5]]
+    >>> batched([1, 2, 3, 4, 5], 2)
+    [1, 2] [3, 4] [5]
     """
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+    if n < 1:
+        raise ValueError('n must be at least one')
+    it = iter(iterable)
+    while batch := tuple(islice(it, n)):
+        yield batch
 
 
 class ButtonPaginator:

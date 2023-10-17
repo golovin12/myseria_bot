@@ -1,3 +1,6 @@
+MY_SERIA_KEY = 'my_seria_url'  # Ключ для получения url к сайту MySeria
+
+
 class ControlCommand:
     ADD_SERIALS = "add_serials"
     CANCEL = "cancel"
