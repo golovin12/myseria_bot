@@ -1,8 +1,14 @@
+import asyncio
+from dataclasses import dataclass
+from datetime import datetime
 from itertools import islice
 from math import ceil
-from typing import Iterable
+from typing import Iterable, AsyncIterable, AsyncIterator, Iterator
 
 from aiogram import types
+from fake_useragent import UserAgent
+
+from consts import MONTH_NAMES_RU
 
 
 def batched(iterable: Iterable, n: int):
@@ -15,6 +21,32 @@ def batched(iterable: Iterable, n: int):
     it = iter(iterable)
     while batch := tuple(islice(it, n)):
         yield batch
+
+
+async def message_per_seconds_limiter(async_generator: AsyncIterable, limit_messages: int = 15,
+                                      limit_seconds: int = 60) -> AsyncIterator:
+    """
+    Ограничивает частоту отправки сообщений. Ограничение limit_messages/limit_seconds (количество сообщений/n секунд)
+    """
+    start_time = datetime.now()
+    count = 0
+    async for seria_info in async_generator:
+        seconds_after_start = (datetime.now() - start_time).seconds
+        if seconds_after_start <= limit_seconds:
+            if count > limit_messages:
+                await asyncio.sleep(limit_seconds - seconds_after_start)
+        else:
+            start_time = datetime.now()
+            count = 0
+        yield seria_info
+        count += 1
+
+
+def get_date_by_localize_date_string(date_string: str) -> datetime:
+    """Формирует дату из строки вида: 29 сентября 2019"""
+    day, month, year = date_string.split()
+    month = MONTH_NAMES_RU[month]
+    return datetime(day=int(day), month=month, year=int(year))
 
 
 class ButtonPaginator:
@@ -48,3 +80,59 @@ class ButtonPaginator:
         keyboard_buttons.append(end_buttons)
         keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
         return keyboard
+
+
+@dataclass
+class Seria:
+    name: str
+    url: str
+    release_date: str
+    voices: list[str]
+
+
+@dataclass
+class Serial:
+    name: str
+    url: str
+    last_season: str
+    last_seria: Seria
+
+
+class FindSerialsHelper:
+    def __init__(self, serials: dict):
+        self._all_serials = serials
+        self.serials = set()
+        self.search_dates = dict()
+        self._fill_data()
+
+    def _fill_data(self):
+        for serial_name, last_date in self._all_serials.items():
+            self.serials.add(serial_name)
+            self.search_dates.setdefault(datetime.strptime(last_date, "%d.%m.%Y"), set()).add(serial_name)
+
+    def get_date_and_update_serials(self) -> Iterator:
+        """При запросе новой даты обновляет список сериалов"""
+        for last_date, serials in sorted(self.search_dates.items()):
+            yield last_date
+            self.serials -= serials  # Удаляем сериалы, которые были привязаны к данной дате
+
+
+class ExternalService:
+    user_agent: UserAgent
+
+    @staticmethod
+    async def get_site_addr() -> str:
+        """Получить адрес сайта"""
+        ...
+
+    async def exist(self, serial_name: str) -> bool:
+        """Проверяет, есть ли сериал с таким названием"""
+        ...
+
+    async def get_new_series_from_date(self, find_serials_helper: FindSerialsHelper) -> AsyncIterator[Seria]:
+        """Получить список новых серий у сериала с выбранной конкретной даты"""
+        yield ...
+
+    async def get_serial_info(self, serial_name: str) -> [Serial | None]:
+        """Получить информацию о сериале"""
+        ...

@@ -1,13 +1,13 @@
 import json
 import re
-from datetime import datetime
-from typing import AsyncIterable, Type
+from datetime import timedelta, datetime
+from typing import AsyncIterator, Type, Iterable
 
 import aiohttp
 import redis
 from aiogram.utils.markdown import hlink, hbold
 
-from my_seria_parcer import ExternalService
+from utils import FindSerialsHelper, ExternalService
 
 
 class AdminController:
@@ -35,19 +35,19 @@ class UserController:
         Формат данных в хранилище:
 
         {"{user_id}_{prefix}": json.dumps({
-            serial_name1: %d.%m.%Y %H:%M,
-            serial_name2: %d.%m.%Y %H:%M,
+            serial_name1: %d.%m.%Y,
+            serial_name2: %d.%m.%Y,
             })}
         """
         self.user_id = user_id
         self._redis_key = f"{self.user_id}_{self.prefix}"
-        self.external_service = self.external_service_class()
+        self._external_service = self.external_service_class()
 
     async def create_if_not_exist(self) -> None:
         """Добавить запись о пользователе, если её ещё нет"""
         await self.aioredis.setnx(self._redis_key, "{}")
 
-    async def reboot(self):
+    async def reboot(self) -> None:
         await self._del_serials()
 
     async def get_serials(self) -> dict:
@@ -71,8 +71,8 @@ class UserController:
         serials = await self.get_serials()
         if serial_name in serials:
             return True
-        if await self.external_service.exist(serial_name):
-            serials[serial_name] = datetime.now().strftime('%d.%m.%Y %H:%M')
+        if await self._external_service.exist(serial_name):
+            serials[serial_name] = (datetime.today() - timedelta(days=7)).strftime('%d.%m.%Y')
             await self._set_serials(serials)
             return True
         return False
@@ -87,7 +87,7 @@ class UserController:
         return False
 
     async def get_serial_info(self, serial_name: str) -> str:
-        serial = await self.external_service.get_serial_info(serial_name)
+        serial = await self._external_service.get_serial_info(serial_name)
         if not serial:
             return f"Не удалось получить информацию о сериале {serial_name}, попробуйте позже."
         last_seria = serial.last_seria
@@ -97,14 +97,13 @@ class UserController:
                 f'{hbold("Дата выхода серии:")}\n{last_seria.release_date}\n'
                 f'{hbold("Вышедшие озвучки:")}\n{", ".join(last_seria.voices)}\n')
 
-    async def get_new_series(self, search: str) -> AsyncIterable[str]:
+    async def get_new_series(self, search: str) -> AsyncIterator[str]:
         """Получить информацию о новых сериях"""
         serials = await self._get_filtered_serials(search)
         is_have_new_series = False
-        for serial_name, last_search_date in serials.items():
-            async for seria_data in self._get_new_series_from_date(serial_name, last_search_date):
-                is_have_new_series = True
-                yield seria_data
+        async for seria_data in self._get_new_series_by_date(serials):
+            is_have_new_series = True
+            yield seria_data
         if not is_have_new_series:
             yield 'Новые серии не найдены.'
 
@@ -117,10 +116,18 @@ class UserController:
             return {}
         return {search: serials[search]}
 
-    async def _get_new_series_from_date(self, serial_name: str, last_search_date: str) -> AsyncIterable[str]:
+    async def _get_new_series_by_date(self, serials: dict) -> AsyncIterator[str]:
         """Получить инфо о новых сериях сериала с выбранной даты"""
-        search_date = datetime.strptime(last_search_date, '%d.%m.%Y %H:%M')
-        async for seria in self.external_service.get_new_series_from_date(serial_name, search_date):
+        find_helper = FindSerialsHelper(serials)
+        async for seria in self._external_service.get_new_series_from_date(find_helper):
             yield (f'{hbold("Серия:")}\n{hlink(seria.name, seria.url)}\n'
                    f'{hbold("Дата выхода серии:")}\n{seria.release_date}\n'
                    f'{hbold("Вышедшие озвучки:")}\n{", ".join(seria.voices)}\n')
+        await self._update_serials_last_date(serials)
+
+    async def _update_serials_last_date(self, update_serials: Iterable) -> None:
+        """Для сериалов, у которых запрашивались новинки обновляем дату последнего обновления на сегодняшнюю"""
+        serials = await self.get_serials()
+        for serial_name in update_serials:
+            serials[serial_name] = datetime.today().strftime("%d.%m.%Y")
+        await self._set_serials(serials)
