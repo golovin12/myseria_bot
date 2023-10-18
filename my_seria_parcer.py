@@ -9,6 +9,7 @@ from utils import FindSerialsHelper, ExternalService, Serial, Seria, get_date_by
 
 
 class MySeriaService(ExternalService):
+    # todo можно добавить кэш для страниц. Кэш сегодняшней страницы хранится 1 час, остальных страниц - 12 часов.
     def __init__(self):
         self.headers = {'user-agent': self.user_agent.random}
 
@@ -73,6 +74,7 @@ class MySeriaService(ExternalService):
             pass
 
     async def _find_serial_on_site(self, session: aiohttp.ClientSession, serial_name: str) -> str:
+        """Поисковый запрос на поиск сериала"""
         # todo информирование, если изменилась структура запроса / сайт не работает
         serial_search_name = re.sub(' ', '+', serial_name)
         host = await self.get_site_addr()
@@ -84,6 +86,7 @@ class MySeriaService(ExternalService):
     @staticmethod
     def _get_series_by_series_block(series_block: BeautifulSoup) -> Iterator[dict]:
         """Получить информацию о сериях из блока с сериями"""
+        # todo информирование, если изменилась структура страницы
         series_items = series_block.find_all('div', class_="item")
         for seria_item in series_items:
             seria_bottom = seria_item.find('div', class_="serial-bottom")
@@ -97,6 +100,7 @@ class MySeriaService(ExternalService):
     @staticmethod
     def _get_date_from_series_block(series_block: BeautifulSoup) -> datetime:
         """Получить дату из блока с сериями"""
+        # todo информирование, если изменилась структура страницы
         date_text = series_block.find('div', class_="episode-group-name").find("span").text
         return get_date_by_localize_date_string(date_text)
 

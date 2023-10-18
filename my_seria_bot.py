@@ -121,7 +121,6 @@ async def command_new_series(message: types.Message, state: FSMContext):
     """Получить информацию о новых сериях"""
     await state.set_state(UserState.new_series)
     serials = await User(message.from_user.id).get_serials()
-    print(serials)
     btn_name, btn_callback = 'Все новые серии', '__all__'
     await state.update_data(btn_name=btn_name, btn_callback=btn_callback)
     keyboard = ButtonPaginator(btn_name, btn_callback).get_paginated_keyboard(serials)
@@ -166,9 +165,8 @@ async def get_new_series(callback_query: types.CallbackQuery, state: FSMContext)
     await callback_query.answer()
     await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=None)
     await callback_query.message.answer("Подождите, информация собирается...")
-    serial = callback_query.data
-
-    new_series = User(callback_query.from_user.id).get_new_series(serial)
+    serial_name = callback_query.data
+    new_series = User(callback_query.from_user.id).get_new_series(serial_name)
     async for seria_info in message_per_seconds_limiter(new_series):
         await callback_query.message.answer(seria_info)
 
@@ -233,9 +231,10 @@ async def serial_info(callback_query: types.CallbackQuery, state: FSMContext):
 @dp.shutdown()
 async def shutdown():
     try:
+        await aioredis.close()
         await dp.storage.close()
     except Exception as e:
-        print(e)
+        print('shutdown_error:', e)
 
 
 async def main():
