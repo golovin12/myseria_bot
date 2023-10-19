@@ -4,11 +4,19 @@ from typing import AsyncIterator, Iterator
 
 import aiohttp
 from bs4 import BeautifulSoup
+from fake_useragent import UserAgent
 
-from utils import FindSerialsHelper, ExternalService, Serial, Seria, get_date_by_localize_date_string
+from bot.consts import MY_SERIA_KEY
+from bot.database.models import SerialSite
+from bot.utils import get_date_by_localize_date_string
+from .abstract import FindSerialsHelper, ExternalService, Serial, Seria
 
+
+# todo отделить логику парсинга и запросы в сеть
 
 class MySeriaService(ExternalService):
+    user_agent = UserAgent()
+
     # todo можно добавить кэш для страниц. Кэш сегодняшней страницы хранится 1 час, остальных страниц - 12 часов.
     def __init__(self):
         self.headers = {'user-agent': self.user_agent.random}
@@ -16,14 +24,14 @@ class MySeriaService(ExternalService):
     async def exist(self, serial_name: str) -> bool:
         async with aiohttp.ClientSession() as session:
             page_data = await self._find_serial_on_site(session, serial_name)
-        if self._find_serial_by_page_data(page_data, serial_name):
+        if self._find_serial_by_search_page(page_data, serial_name):
             return True
         return False
 
     async def get_serial_info(self, serial_name: str) -> [Serial | None]:
         async with aiohttp.ClientSession() as session:
             page_data = await self._find_serial_on_site(session, serial_name)
-            serial_data = self._find_serial_by_page_data(page_data, serial_name)
+            serial_data = self._find_serial_by_search_page(page_data, serial_name)
             serial_url = serial_data.get('url')
             if not serial_url:
                 return None
@@ -49,11 +57,10 @@ class MySeriaService(ExternalService):
     async def get_new_series_from_date(self, find_serials_helper: FindSerialsHelper) -> AsyncIterator[Seria]:
         # 2 точки выхода: 1) превышен лимит в 120 страниц; 2) все сериалы были просмотрены (StopIteration)
         try:
-            host = await self.get_site_addr()
+            host = await SerialSite(MY_SERIA_KEY).get_url()
             page = 1
             last_date_iterator = find_serials_helper.get_date_and_update_serials()
             last_date = next(last_date_iterator)
-            series_date = datetime.now()
             async with aiohttp.ClientSession() as session:
                 while page < 120:
                     page_url = f'{host}/series/page/{page}/'
@@ -63,7 +70,6 @@ class MySeriaService(ExternalService):
                     series_by_dates = soup.find_all('div', class_="episode-group")
                     for series_block in series_by_dates:
                         series_date = self._get_date_from_series_block(series_block)
-                        print(series_date)
                         if last_date > series_date:
                             last_date = next(last_date_iterator)
                         for seria in self._get_series_by_series_block(series_block):
@@ -77,7 +83,7 @@ class MySeriaService(ExternalService):
         """Поисковый запрос на поиск сериала"""
         # todo информирование, если изменилась структура запроса / сайт не работает
         serial_search_name = re.sub(' ', '+', serial_name)
-        host = await self.get_site_addr()
+        host = await SerialSite(MY_SERIA_KEY).get_url()
         url = f'{host}/?do=search&subaction=search&story={serial_search_name}'
         async with session.get(url=url, headers=self.headers) as response:
             page_data = await response.text()
@@ -105,7 +111,7 @@ class MySeriaService(ExternalService):
         return get_date_by_localize_date_string(date_text)
 
     @staticmethod
-    def _find_serial_by_page_data(page_data: str, serial_name: str) -> dict:
+    def _find_serial_by_search_page(page_data: str, serial_name: str) -> dict:
         """Проверяет, есть ли нужный сериал среди найденных"""
         # todo информирование, если изменилась структура страницы
         serial_name = serial_name.lower()
