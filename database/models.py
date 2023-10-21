@@ -1,7 +1,7 @@
 import json
 
-from bot.config import aioredis
-from bot.consts import SERIALS_PREFIX, ADMIN_KEY
+from config import aioredis
+from consts import SERIALS_PREFIX, ADMIN_KEY
 
 
 class SerialSite:

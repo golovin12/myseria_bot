@@ -3,7 +3,7 @@ import re
 from aiogram import types, Router
 from aiogram.fsm.context import FSMContext
 
-from bot.consts import PAGINATION_SERIALS_PREFIX
+from .consts import PAGINATION_SERIALS_PREFIX
 from .controller import UserController
 from .keyboards import get_paginated_serials_keyboard
 

@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Iterator, AsyncIterator
-
-from fake_useragent import UserAgent
+from typing import Iterator
 
 
 @dataclass
@@ -38,19 +36,3 @@ class FindSerialsHelper:
         for last_date, serials in sorted(self.search_dates.items()):
             yield last_date
             self.serials -= serials  # Удаляем сериалы, которые были привязаны к данной дате
-
-
-class ExternalService:
-    user_agent: UserAgent
-
-    async def exist(self, serial_name: str) -> bool:
-        """Проверяет, есть ли сериал с таким названием"""
-        ...
-
-    async def get_new_series_from_date(self, find_serials_helper: FindSerialsHelper) -> AsyncIterator[Seria]:
-        """Получить список новых серий у сериала с выбранной конкретной даты"""
-        yield ...
-
-    async def get_serial_info(self, serial_name: str) -> [Serial | None]:
-        """Получить информацию о сериале"""
-        ...

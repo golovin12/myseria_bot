@@ -6,15 +6,15 @@ import aiohttp
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
-from bot.consts import MY_SERIA_KEY
-from bot.database.models import SerialSite
-from bot.utils import get_date_by_localize_date_string
-from .abstract import FindSerialsHelper, ExternalService, Serial, Seria
+from consts import MY_SERIA_KEY
+from database.models import SerialSite
+from utils import get_date_by_localize_date_string
+from .serials import FindSerialsHelper, Serial, Seria
 
 
 # todo отделить логику парсинга и запросы в сеть
 
-class MySeriaService(ExternalService):
+class MySeriaService:
     user_agent = UserAgent()
 
     # todo можно добавить кэш для страниц. Кэш сегодняшней страницы хранится 1 час, остальных страниц - 12 часов.
@@ -22,6 +22,7 @@ class MySeriaService(ExternalService):
         self.headers = {'user-agent': self.user_agent.random}
 
     async def exist(self, serial_name: str) -> bool:
+        """Проверяет, есть ли сериал с таким названием"""
         async with aiohttp.ClientSession() as session:
             page_data = await self._find_serial_on_site(session, serial_name)
         if self._find_serial_by_search_page(page_data, serial_name):
@@ -29,6 +30,7 @@ class MySeriaService(ExternalService):
         return False
 
     async def get_serial_info(self, serial_name: str) -> [Serial | None]:
+        """Получить список новых серий у сериала с выбранной конкретной даты"""
         async with aiohttp.ClientSession() as session:
             page_data = await self._find_serial_on_site(session, serial_name)
             serial_data = self._find_serial_by_search_page(page_data, serial_name)
@@ -55,6 +57,7 @@ class MySeriaService(ExternalService):
         return None
 
     async def get_new_series_from_date(self, find_serials_helper: FindSerialsHelper) -> AsyncIterator[Seria]:
+        """Получить информацию о сериале"""
         # 2 точки выхода: 1) превышен лимит в 120 страниц; 2) все сериалы были просмотрены (StopIteration)
         try:
             host = await SerialSite(MY_SERIA_KEY).get_url()

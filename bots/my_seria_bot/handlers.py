@@ -2,8 +2,8 @@ from aiogram import types, Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 
-from bot.consts import ControlCommand, CallbackButtonInfo
-from bot.utils import message_per_seconds_limiter
+from utils import message_per_seconds_limiter
+from .consts import ControlCommand, CallbackButtonInfo
 from .controller import UserController
 from .keyboards import get_main_keyboard, get_paginated_serials_keyboard
 from .states import UserState
@@ -89,7 +89,10 @@ async def get_new_series(callback_query: types.CallbackQuery, state: FSMContext)
     await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=None)
     await callback_query.message.answer("Подождите, информация собирается...")
     serial_name = callback_query.data
-    new_series = UserController(callback_query.from_user.id).get_new_series(serial_name)
+    if serial_name == CallbackButtonInfo.ALL:
+        new_series = UserController(callback_query.from_user.id).get_new_series()
+    else:
+        new_series = UserController(callback_query.from_user.id).get_new_series(serial_name)
     async for seria_info in message_per_seconds_limiter(new_series):
         await callback_query.message.answer(seria_info)
 

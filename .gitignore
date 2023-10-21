@@ -1,6 +1,7 @@
 ﻿*.pyc
 *.env
 *~
+example.py
 __pycache__
 .idea
 venv

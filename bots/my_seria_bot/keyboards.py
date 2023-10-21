@@ -3,12 +3,12 @@ from math import ceil
 from aiogram import types
 from aiogram.fsm.context import FSMContext
 
-from bot.consts import ControlCommand, PAGINATION_SERIALS_PREFIX, CallbackButtonInfo
-from bot.utils import batched
+from utils import batched
+from .consts import ControlCommand, PAGINATION_SERIALS_PREFIX, CallbackButtonInfo
 
 
 def get_main_keyboard() -> types.ReplyKeyboardMarkup:
-    buttons = (types.KeyboardButton(text=f"/{command}") for command, name in ControlCommand.choices)
+    buttons = (types.KeyboardButton(text=f"/{command}") for command, desc in ControlCommand.choices)
     buttons = batched(buttons, 2)
     keyboard = types.ReplyKeyboardMarkup(
         keyboard=buttons,
@@ -16,6 +16,13 @@ def get_main_keyboard() -> types.ReplyKeyboardMarkup:
         input_field_placeholder="Выберите команду"
     )
     return keyboard
+
+
+def get_menu_commands() -> list[types.BotCommand]:
+    bot_commands = [
+        types.BotCommand(command=f'/{command}', description=desc) for command, desc in ControlCommand.choices
+    ]
+    return bot_commands
 
 
 async def get_paginated_serials_keyboard(serials: iter, state: FSMContext, method: str = None, page: int = 0,

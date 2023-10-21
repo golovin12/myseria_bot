@@ -3,7 +3,7 @@ from datetime import datetime
 from itertools import islice
 from typing import Iterable, AsyncIterable, AsyncIterator
 
-from .consts import MONTH_NAMES_RU
+from consts import MONTH_NAMES_RU
 
 
 def batched(iterable: Iterable, n: int):
