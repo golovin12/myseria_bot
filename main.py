@@ -4,10 +4,10 @@ from fastapi import FastAPI
 
 import api
 import bots
-from consts import MY_SERIA_ROUTE, ADMIN_ROUTE, SKIP_UPDATES
 import config
+from consts import MY_SERIA_ROUTE, ADMIN_ROUTE, SKIP_UPDATES
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('uvicorn')
 
 
 async def shutdown():
@@ -19,9 +19,13 @@ async def shutdown():
 
         await config.my_seria_dp.storage.close()
         await config.admin_dp.storage.close()
-        print('shutdown')
+
+        if config.USE_NGROK:
+            from pyngrok import ngrok
+            ngrok.disconnect(config.BASE_URL)
+        logger.info('shutdown is complete')
     except Exception as e:
-        print('shutdown_error:', e)
+        logger.info('shutdown_error:', e)
 
 
 async def startup():
@@ -30,8 +34,8 @@ async def startup():
         from pyngrok import ngrok
         port = str(config.PORT)
         # Open a ngrok tunnel to the dev server
-        public_url = ngrok.connect(port).public_url
-        logger.info("ngrok tunnel \"{}\" -> \"http://127.0.0.1:{}\"".format(public_url, port))
+        public_url = ngrok.connect(f"{config.HOST}:{port}").public_url
+        logger.info("ngrok tunnel \"{}\" -> \"http://{}:{}\"".format(public_url, config.HOST, port))
 
         # Update any base URLs or webhooks to use the public ngrok URL
         config.BASE_URL = public_url
@@ -45,7 +49,7 @@ async def startup():
     await config.admin_bot.set_webhook(f"{config.BASE_URL}/bot{ADMIN_ROUTE}", secret_token=config.SECRET_TOKEN,
                                        drop_pending_updates=SKIP_UPDATES)
     config.admin_dp.include_routers(bots.admin_router)
-    print('startup')
+    logger.info('startup is complete')
 
 
 app = FastAPI()
