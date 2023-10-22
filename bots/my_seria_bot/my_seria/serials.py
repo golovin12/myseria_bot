@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Iterator
 
 
-@dataclass
+@dataclass(frozen=True)
 class Seria:
     name: str
     url: str
@@ -11,7 +11,7 @@ class Seria:
     voices: list[str]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Serial:
     name: str
     url: str
@@ -23,10 +23,11 @@ class FindSerialsHelper:
     def __init__(self, serials: dict):
         self._all_serials = serials
         self.serials = set()
-        self.search_dates = dict()
+        self.search_dates = {}
         self._fill_data()
 
-    def _fill_data(self):
+    def _fill_data(self) -> None:
+        """Разбирает _all_serials и заполняет serials и search_dates"""
         for serial_name, last_date in self._all_serials.items():
             self.serials.add(serial_name)
             self.search_dates.setdefault(datetime.strptime(last_date, "%d.%m.%Y"), set()).add(serial_name)

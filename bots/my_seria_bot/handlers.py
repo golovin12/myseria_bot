@@ -41,8 +41,11 @@ async def command_cancel(message: types.Message, state: FSMContext):
 @router.message(Command(ControlCommand.REBOOT))
 async def add_serials_command(message: types.Message):
     """Сбрасывает список отслеживаемых сериалов"""
-    await UserController(message.from_user.id).reboot()
-    await message.reply("Информация о Вас успешно сброшена.")
+    is_reboot = await UserController(message.from_user.id).reboot()
+    if is_reboot:
+        await message.reply("Информация о Вас успешно сброшена.")
+    else:
+        await message.reply("Сброс не удался, повторите попытку")
 
 
 @router.message(Command(ControlCommand.NEW_SERIES))

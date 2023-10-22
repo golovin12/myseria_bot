@@ -5,10 +5,10 @@ from consts import SERIALS_PREFIX, ADMIN_KEY
 
 
 class SerialSite:
-    key: str
-    url: str
+    _key: str
+    _url: str
 
-    def __init__(self, key):
+    def __init__(self, key: str):
         """
         Доступ к атрибутам через get_ и set_ методы
         """
@@ -18,14 +18,14 @@ class SerialSite:
         url: str = await aioredis.get(self.key)
         return url or 'https://'
 
-    async def set_url(self, url: str):
-        await aioredis.set(self.key, url)
+    async def set_url(self, url: str) -> bool:
+        return await aioredis.set(self.key, url)
 
 
 class User:
-    user_id: int
-    serials: dict
-    is_admin: bool
+    _user_id: int
+    _serials: dict
+    _is_admin: bool
 
     def __init__(self, user_id: int):
         """
@@ -47,21 +47,20 @@ class User:
             return json.loads(serials)
         return {}
 
-    async def set_serials(self, serials: dict):
-        await aioredis.set(self._redis_serials_key, json.dumps(serials))
+    async def set_serials(self, serials: dict) -> bool:
+        return await aioredis.set(self._redis_serials_key, json.dumps(serials))
 
-    async def del_serials(self):
-        await aioredis.set(self._redis_serials_key, '{}')
+    async def del_serials(self) -> bool:
+        return await aioredis.set(self._redis_serials_key, '{}')
 
     async def is_admin(self) -> bool:
-        is_admin = await aioredis.sismember(self._redis_admin_key, str(self.user_id))
-        return is_admin
+        return await aioredis.sismember(self._redis_admin_key, str(self.user_id))
 
-    async def set_is_admin(self):
-        await aioredis.sadd(self._redis_admin_key, str(self.user_id))
+    async def set_is_admin(self) -> bool:
+        return await aioredis.sadd(self._redis_admin_key, str(self.user_id))
 
-    async def del_is_admin(self):
-        await aioredis.srem(self._redis_admin_key, str(self.user_id))
+    async def del_is_admin(self) -> bool:
+        return await aioredis.srem(self._redis_admin_key, str(self.user_id))
 
     async def get_all_admins(self) -> set[str]:
         return await aioredis.smembers(self._redis_admin_key)

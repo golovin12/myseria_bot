@@ -15,11 +15,11 @@ from .serials import FindSerialsHelper, Serial, Seria
 # todo отделить логику парсинга и запросы в сеть
 
 class MySeriaService:
-    user_agent = UserAgent()
+    _user_agent_class = UserAgent
 
     # todo можно добавить кэш для страниц. Кэш сегодняшней страницы хранится 1 час, остальных страниц - 12 часов.
     def __init__(self):
-        self.headers = {'user-agent': self.user_agent.random}
+        self.headers = {'user-agent': self._user_agent_class().random}
 
     async def exist(self, serial_name: str) -> bool:
         """Проверяет, есть ли сериал с таким названием"""
@@ -29,7 +29,7 @@ class MySeriaService:
             return True
         return False
 
-    async def get_serial_info(self, serial_name: str) -> [Serial | None]:
+    async def get_serial_info(self, serial_name: str) -> Serial | None:
         """Получить список новых серий у сериала с выбранной конкретной даты"""
         async with aiohttp.ClientSession() as session:
             page_data = await self._find_serial_on_site(session, serial_name)
@@ -145,7 +145,7 @@ class MySeriaService:
         return result
 
     @staticmethod
-    def _get_seria_by_seria_page(page_data: str, last_seria_url: str) -> [Seria | None]:
+    def _get_seria_by_seria_page(page_data: str, last_seria_url: str) -> Seria | None:
         """Получение инфо о серии со страницы серии"""
         # todo информирование, если изменилась структура страницы
         seria_name = None

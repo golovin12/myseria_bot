@@ -1,4 +1,5 @@
 from math import ceil
+from typing import Collection
 
 from aiogram import types
 from aiogram.fsm.context import FSMContext
@@ -25,7 +26,7 @@ def get_menu_commands() -> list[types.BotCommand]:
     return bot_commands
 
 
-async def get_paginated_serials_keyboard(serials: iter, state: FSMContext, method: str = None, page: int = 0,
+async def get_paginated_serials_keyboard(serials: Collection, state: FSMContext, method: str = "", page: int = 0,
                                          items_on_page: int = 10) -> types.InlineKeyboardMarkup:
     # todo упростить код
     if method:

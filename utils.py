@@ -1,12 +1,12 @@
 import asyncio
 from datetime import datetime
 from itertools import islice
-from typing import Iterable, AsyncIterable, AsyncIterator
+from typing import Iterable, AsyncIterable, AsyncIterator, Iterator
 
 from consts import MONTH_NAMES_RU
 
 
-def batched(iterable: Iterable, n: int):
+def batched(iterable: Iterable, n: int) -> Iterator:
     """
     >>> batched([1, 2, 3, 4, 5], 2)
     [1, 2] [3, 4] [5]
@@ -40,5 +40,5 @@ async def message_per_seconds_limiter(async_generator: AsyncIterable, limit_mess
 def get_date_by_localize_date_string(date_string: str) -> datetime:
     """Формирует дату из строки вида: 29 сентября 2019"""
     day, month, year = date_string.split()
-    month = MONTH_NAMES_RU[month]
-    return datetime(day=int(day), month=month, year=int(year))
+    month_num = MONTH_NAMES_RU[month]
+    return datetime(day=int(day), month=month_num, year=int(year))

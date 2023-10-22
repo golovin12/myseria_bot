@@ -11,7 +11,7 @@ from database.models import User
 logger = logging.getLogger('uvicorn')
 
 
-async def shutdown():
+async def shutdown() -> None:
     try:
         await config.aioredis.aclose()
 
@@ -29,7 +29,7 @@ async def shutdown():
         logger.info('shutdown_error:', e)
 
 
-async def startup():
+async def startup() -> None:
     if config.ADMIN_ID:
         await User(int(config.ADMIN_ID)).set_is_admin()
     if config.USE_NGROK:
