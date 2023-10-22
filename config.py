@@ -9,16 +9,19 @@ from dotenv import load_dotenv
 
 load_dotenv('.env')
 
-aioredis = redis.asyncio.Redis(db=1, decode_responses=True)
+redis_host = os.getenv("REDIS_HOST", 'localhost')
+aioredis = redis.asyncio.Redis(host=redis_host, db=1, decode_responses=True)
 
 MY_SERIA_BOT_TOKEN = os.getenv("MY_SERIA_BOT_TOKEN")
-my_seria_bot_storage = RedisStorage(redis.asyncio.Redis(db=2, decode_responses=True))
+my_seria_bot_storage = RedisStorage(redis.asyncio.Redis(host=redis_host, db=2, decode_responses=True))
 my_seria_bot = Bot(MY_SERIA_BOT_TOKEN, parse_mode=ParseMode.HTML)
 my_seria_dp = Dispatcher(storage=my_seria_bot_storage)
 
 ADMIN_BOT_TOKEN = os.getenv("ADMIN_BOT_TOKEN")
 admin_bot = Bot(ADMIN_BOT_TOKEN, parse_mode=ParseMode.HTML)
 admin_dp = Dispatcher()
+
+ADMIN_ID = os.getenv("ADMIN_ID", "")
 
 SECRET_TOKEN = os.getenv("SECRET_TOKEN")
 

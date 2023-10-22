@@ -140,7 +140,7 @@ async def delete_serial(callback_query: types.CallbackQuery, state: FSMContext):
 @router.callback_query(UserState.my_serials)
 async def serial_info(callback_query: types.CallbackQuery, state: FSMContext):
     """Получение актуальной информации о сериале"""
-    await callback_query.answer()
+    await callback_query.answer('Подождите, информация собирается...')
     if callback_query.data == CallbackButtonInfo.CLOSE:
         await state.clear()
         await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=None)

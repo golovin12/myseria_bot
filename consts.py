@@ -1,4 +1,4 @@
-SKIP_UPDATES = True
+SKIP_UPDATES = False
 MY_SERIA_ROUTE = "/my_seria"
 ADMIN_ROUTE = "/admin"
 

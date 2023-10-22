@@ -8,7 +8,7 @@ from .my_seria import FindSerialsHelper, MySeriaService
 
 
 class UserController:
-    my_seria_service: MySeriaService()
+    my_seria_service = MySeriaService()
 
     def __init__(self, user_id: int):
         self.user = User(user_id)
