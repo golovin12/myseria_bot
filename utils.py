@@ -8,7 +8,7 @@ from consts import MONTH_NAMES_RU
 T = TypeVar('T')
 
 
-def batched(iterable: Iterable[T], n: int) -> Iterator[tuple[T]]:
+def batched(iterable: Iterable[T], n: int) -> Iterator[tuple[T, ...]]:
     """
     >>> batched([1, 2, 3, 4, 5], 2)
     [1, 2] [3, 4] [5]
