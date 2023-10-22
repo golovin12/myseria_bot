@@ -1,5 +1,5 @@
+import itertools
 from math import ceil
-from typing import Collection
 
 from aiogram import types
 from aiogram.fsm.context import FSMContext
@@ -12,7 +12,7 @@ def get_main_keyboard() -> types.ReplyKeyboardMarkup:
     buttons = (types.KeyboardButton(text=f"/{command}") for command, desc in ControlCommand.choices)
     buttons = batched(buttons, 2)
     keyboard = types.ReplyKeyboardMarkup(
-        keyboard=buttons,
+        keyboard=buttons,  # noqa
         resize_keyboard=True,
         input_field_placeholder="Выберите команду"
     )
@@ -26,7 +26,7 @@ def get_menu_commands() -> list[types.BotCommand]:
     return bot_commands
 
 
-async def get_paginated_serials_keyboard(serials: Collection, state: FSMContext, method: str = "", page: int = 0,
+async def get_paginated_serials_keyboard(serials: dict[str, str], state: FSMContext, method: str = "", page: int = 0,
                                          items_on_page: int = 10) -> types.InlineKeyboardMarkup:
     # todo упростить код
     if method:
@@ -47,8 +47,8 @@ async def get_paginated_serials_keyboard(serials: Collection, state: FSMContext,
         types.InlineKeyboardButton(text=f'Страница {page + 2}', callback_data=f'#page-{page + 1}')
     ) if page + 1 < max_pages else None
 
-    serials = list(serials)[page * items_on_page:(page + 1) * items_on_page]
-    keyboard_buttons = [[types.InlineKeyboardButton(text=serial, callback_data=serial)] for serial in serials]
+    page_serials = itertools.islice(serials.keys(), page * items_on_page, (page + 1) * items_on_page)
+    keyboard_buttons = [[types.InlineKeyboardButton(text=serial, callback_data=serial)] for serial in page_serials]
     keyboard_buttons.append(end_buttons)
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)
     return keyboard

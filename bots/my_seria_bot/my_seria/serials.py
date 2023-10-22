@@ -20,10 +20,10 @@ class Serial:
 
 
 class FindSerialsHelper:
-    def __init__(self, serials: dict):
+    def __init__(self, serials: dict[str, str]):
         self._all_serials = serials
-        self.serials = set()
-        self.search_dates = {}
+        self.serials: set[str] = set()
+        self.search_dates: dict[datetime, set[str]] = {}
         self._fill_data()
 
     def _fill_data(self) -> None:
@@ -32,7 +32,7 @@ class FindSerialsHelper:
             self.serials.add(serial_name)
             self.search_dates.setdefault(datetime.strptime(last_date, "%d.%m.%Y"), set()).add(serial_name)
 
-    def get_date_and_update_serials(self) -> Iterator:
+    def get_date_and_update_serials(self) -> Iterator[datetime]:
         """При запросе новой даты обновляет список сериалов"""
         for last_date, serials in sorted(self.search_dates.items()):
             yield last_date

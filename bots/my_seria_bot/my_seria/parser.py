@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import AsyncIterator, Iterator
+from typing import AsyncIterator, Iterator, Any
 
 import aiohttp
 from bs4 import BeautifulSoup
@@ -93,7 +93,7 @@ class MySeriaService:
         return page_data
 
     @staticmethod
-    def _get_series_by_series_block(series_block: BeautifulSoup) -> Iterator[dict]:
+    def _get_series_by_series_block(series_block: BeautifulSoup) -> Iterator[dict[str, Any]]:
         """Получить информацию о сериях из блока с сериями"""
         # todo информирование, если изменилась структура страницы
         series_items = series_block.find_all('div', class_="item")
@@ -114,7 +114,7 @@ class MySeriaService:
         return get_date_by_localize_date_string(date_text)
 
     @staticmethod
-    def _find_serial_by_search_page(page_data: str, serial_name: str) -> dict:
+    def _find_serial_by_search_page(page_data: str, serial_name: str) -> dict[str, str]:
         """Проверяет, есть ли нужный сериал среди найденных"""
         # todo информирование, если изменилась структура страницы
         serial_name = serial_name.lower()
@@ -129,7 +129,7 @@ class MySeriaService:
         return {}
 
     @staticmethod
-    def _get_serial_info_by_serial_page(page_data: str) -> dict:
+    def _get_serial_info_by_serial_page(page_data: str) -> dict[str, str]:
         """Информация о сериале со страницы сериала"""
         # todo информирование, если изменилась структура страницы
         result = {}

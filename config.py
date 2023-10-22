@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import redis
 from aiogram import Bot, Dispatcher
@@ -32,11 +33,11 @@ PORT = 8000
 BASE_URL = f"https://{HOST}"  # если env.USE_NGROK = True, то BASE_URL заменяется на выданный ngrok
 
 
-async def admin_bot_process_new_updates(data: dict) -> None:
+async def admin_bot_process_new_updates(data: dict[Any, Any]) -> None:
     update = Update.model_validate(data, context={"bot": admin_bot})
     await admin_dp.feed_update(admin_bot, update)
 
 
-async def my_seria_bot_process_new_updates(data: dict) -> None:
+async def my_seria_bot_process_new_updates(data: dict[Any, Any]) -> None:
     update = Update.model_validate(data, context={"bot": my_seria_bot})
     await my_seria_dp.feed_update(my_seria_bot, update)

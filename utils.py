@@ -1,12 +1,14 @@
 import asyncio
 from datetime import datetime
 from itertools import islice
-from typing import Iterable, AsyncIterable, AsyncIterator, Iterator
+from typing import Iterable, AsyncIterable, AsyncIterator, Iterator, TypeVar
 
 from consts import MONTH_NAMES_RU
 
+T = TypeVar('T')
 
-def batched(iterable: Iterable, n: int) -> Iterator:
+
+def batched(iterable: Iterable[T], n: int) -> Iterator[tuple[T]]:
     """
     >>> batched([1, 2, 3, 4, 5], 2)
     [1, 2] [3, 4] [5]
@@ -18,14 +20,14 @@ def batched(iterable: Iterable, n: int) -> Iterator:
         yield batch
 
 
-async def message_per_seconds_limiter(async_generator: AsyncIterable, limit_messages: int = 15,
-                                      limit_seconds: int = 60) -> AsyncIterator:
+async def message_per_seconds_limiter(async_generator: AsyncIterable[T], limit_messages: int = 15,
+                                      limit_seconds: int = 60) -> AsyncIterator[T]:
     """
     Ограничивает частоту отправки сообщений. Ограничение limit_messages/limit_seconds (количество сообщений/n секунд)
     """
     start_time = datetime.now()
     count = 0
-    async for seria_info in async_generator:
+    async for message in async_generator:
         seconds_after_start = (datetime.now() - start_time).seconds
         if seconds_after_start <= limit_seconds:
             if count > limit_messages:
@@ -33,7 +35,7 @@ async def message_per_seconds_limiter(async_generator: AsyncIterable, limit_mess
         else:
             start_time = datetime.now()
             count = 0
-        yield seria_info
+        yield message
         count += 1
 
 

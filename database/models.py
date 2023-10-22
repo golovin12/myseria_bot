@@ -19,12 +19,12 @@ class SerialSite:
         return url or 'https://'
 
     async def set_url(self, url: str) -> bool:
-        return await aioredis.set(self.key, url)
+        return bool(await aioredis.set(self.key, url))
 
 
 class User:
     _user_id: int
-    _serials: dict
+    _serials: dict[str, str]
     _is_admin: bool
 
     def __init__(self, user_id: int):
@@ -41,17 +41,17 @@ class User:
         self._redis_serials_key = f"{self.user_id}_{SERIALS_PREFIX}"
         self._redis_admin_key = ADMIN_KEY
 
-    async def get_serials(self) -> dict:
+    async def get_serials(self) -> dict[str, str]:
         serials = await aioredis.get(self._redis_serials_key)
         if serials:
             return json.loads(serials)
         return {}
 
-    async def set_serials(self, serials: dict) -> bool:
-        return await aioredis.set(self._redis_serials_key, json.dumps(serials))
+    async def set_serials(self, serials: dict[str, str]) -> bool:
+        return bool(await aioredis.set(self._redis_serials_key, json.dumps(serials)))
 
     async def del_serials(self) -> bool:
-        return await aioredis.set(self._redis_serials_key, '{}')
+        return bool(await aioredis.set(self._redis_serials_key, '{}'))
 
     async def is_admin(self) -> bool:
         return await aioredis.sismember(self._redis_admin_key, str(self.user_id))

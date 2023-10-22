@@ -18,11 +18,11 @@ class UserController:
         """Очистить список сериалов пользователя"""
         return await self.user.del_serials()
 
-    async def get_serials(self) -> dict:
+    async def get_serials(self) -> dict[str, str]:
         """Получить список отслеживаемых сериалов"""
         return await self.user.get_serials()
 
-    async def _set_serials(self, serials: dict) -> bool:
+    async def _set_serials(self, serials: dict[str, str]) -> bool:
         """Изменить список отслеживаемых сериалов"""
         return await self.user.set_serials(serials)
 
@@ -71,7 +71,7 @@ class UserController:
         if not is_have_new_series:
             yield 'Новые серии не найдены.'
 
-    async def _get_filtered_serials(self, search: str) -> dict:
+    async def _get_filtered_serials(self, search: str) -> dict[str, str]:
         """Получить отфильтрованный список отслеживаемых сериалов"""
         serials = await self.get_serials()
         if search:
@@ -80,7 +80,7 @@ class UserController:
             return {search: serials[search]}
         return serials
 
-    async def _update_serials_last_date(self, update_serials: Iterable) -> bool:
+    async def _update_serials_last_date(self, update_serials: Iterable[str]) -> bool:
         """Для сериалов, у которых запрашивались новинки обновляем дату последнего обновления на сегодняшнюю"""
         serials = await self.get_serials()
         for serial_name in update_serials:
