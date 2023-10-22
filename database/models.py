@@ -35,7 +35,7 @@ class User:
 
         "{user_id}_{prefix}": json.dumps(serials)
 
-        admins: {user_id: True/False}
+        admins: set(user_id1, user_id2)
         """
         self.user_id = user_id
         self._redis_serials_key = f"{self.user_id}_{SERIALS_PREFIX}"
@@ -54,14 +54,14 @@ class User:
         await aioredis.set(self._redis_serials_key, '{}')
 
     async def is_admin(self) -> bool:
-        is_admin = await aioredis.hget(self._redis_admin_key, str(self.user_id))
-        return bool(is_admin)
+        is_admin = await aioredis.sismember(self._redis_admin_key, str(self.user_id))
+        return is_admin
 
     async def set_is_admin(self):
-        await aioredis.hset(self._redis_admin_key, str(self.user_id), "True")
+        await aioredis.sadd(self._redis_admin_key, str(self.user_id))
 
     async def del_is_admin(self):
-        await aioredis.hdel(self._redis_admin_key, str(self.user_id))
+        await aioredis.srem(self._redis_admin_key, str(self.user_id))
 
-    async def get_all_admins(self) -> dict:
-        return await aioredis.hgetall(self._redis_admin_key)
+    async def get_all_admins(self) -> set[str]:
+        return await aioredis.smembers(self._redis_admin_key)
