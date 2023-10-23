@@ -10,16 +10,14 @@ class AdminController:
         self._access_denied_msg = "Отказано в доступе"
 
     async def create_admin(self, new_admin_id: int) -> str:
-        if await User(new_admin_id).set_is_admin():
-            return f"Юзер с id {new_admin_id} теперь является администратором"
-        return "Не удалось установить роль администратора, повторите попытку"
+        await User(new_admin_id).set_is_admin()
+        return f"Юзер с id {new_admin_id} теперь является администратором"
 
     async def delete_admin(self, admin_id: int) -> str:
         if admin_id == self.user.user_id:
             return "Вы не можете убрать с себя роль администратора"
-        if await User(admin_id).del_is_admin():
-            return f"Юзер с id {admin_id} больше не является администратором"
-        return "Не удалось удалить роль администратора, повторите попытку"
+        await User(admin_id).del_is_admin()
+        return f"Юзер с id {admin_id} больше не является администратором"
 
     async def get_all_admins(self) -> str:
         admins = await self.user.get_all_admins()

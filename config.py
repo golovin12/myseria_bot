@@ -26,6 +26,8 @@ ADMIN_ID = os.getenv("ADMIN_ID", "")
 
 SECRET_TOKEN = os.getenv("SECRET_TOKEN")
 
+VK_ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
+
 USE_NGROK = os.environ.get("USE_NGROK", "False") == "True"
 
 HOST = '127.0.0.1'

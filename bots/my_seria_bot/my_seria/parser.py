@@ -17,7 +17,6 @@ from .serials import FindSerialsHelper, Serial, Seria
 class MySeriaService:
     _user_agent_class = UserAgent
 
-    # todo можно добавить кэш для страниц. Кэш сегодняшней страницы хранится 1 час, остальных страниц - 12 часов.
     def __init__(self):
         self.headers = {'user-agent': self._user_agent_class().random}
 
@@ -60,7 +59,7 @@ class MySeriaService:
         """Получить информацию о сериале"""
         # 2 точки выхода: 1) превышен лимит в 120 страниц; 2) все сериалы были просмотрены (StopIteration)
         try:
-            host = await SerialSite(MY_SERIA_KEY).get_url()
+            host = await self._get_my_seria_url()
             page = 1
             last_date_iterator = find_serials_helper.get_date_and_update_serials()
             last_date = next(last_date_iterator)
@@ -86,11 +85,15 @@ class MySeriaService:
         """Поисковый запрос на поиск сериала"""
         # todo информирование, если изменилась структура запроса / сайт не работает
         serial_search_name = re.sub(' ', '+', serial_name)
-        host = await SerialSite(MY_SERIA_KEY).get_url()
+        host = await self._get_my_seria_url()
         url = f'{host}/?do=search&subaction=search&story={serial_search_name}'
         async with session.get(url=url, headers=self.headers) as response:
             page_data = await response.text()
         return page_data
+
+    @staticmethod
+    async def _get_my_seria_url() -> str:
+        return await SerialSite(MY_SERIA_KEY).get_url()
 
     @staticmethod
     def _get_series_by_series_block(series_block: BeautifulSoup) -> Iterator[dict[str, Any]]:
@@ -169,3 +172,25 @@ class MySeriaService:
             release_date=seria_release,
             voices=seria_voices,
         )
+
+
+async def update_my_seria_url_by_vk(vk_access_token: str) -> bool:
+    """
+    Установка актуального адреса сайта с сериалами
+
+    :param vk_access_token: ключ доступа для доступа к VK API (пользовательский, сообщества или сервисный)
+    """
+    method = 'groups.getById'
+    params = f'group_id=200719078&fields=site&access_token={vk_access_token}&v=5.131'
+    # Описание метода: https://dev.vk.com/ru/method/groups.getById
+    vk_api_url = f'https://api.vk.com/method/{method}?{params}'
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url=vk_api_url) as response:
+            group = await response.json()
+        my_seria_url = group.get('response', [{}])[0].get('site')
+        if my_seria_url:
+            my_seria_url = my_seria_url.rstrip('/')
+            async with session.get(my_seria_url) as response:
+                if response.status == 200:
+                    return await SerialSite(MY_SERIA_KEY).set_url(my_seria_url)
+    return False

@@ -54,13 +54,13 @@ class User:
         return bool(await aioredis.set(self._redis_serials_key, '{}'))
 
     async def is_admin(self) -> bool:
-        return await aioredis.sismember(self._redis_admin_key, str(self.user_id))
+        return bool(await aioredis.sismember(self._redis_admin_key, str(self.user_id)))
 
     async def set_is_admin(self) -> bool:
-        return await aioredis.sadd(self._redis_admin_key, str(self.user_id))
+        return bool(await aioredis.sadd(self._redis_admin_key, str(self.user_id)))
 
     async def del_is_admin(self) -> bool:
-        return await aioredis.srem(self._redis_admin_key, str(self.user_id))
+        return bool(await aioredis.srem(self._redis_admin_key, str(self.user_id)))
 
     async def get_all_admins(self) -> set[str]:
         return await aioredis.smembers(self._redis_admin_key)

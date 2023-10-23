@@ -31,7 +31,12 @@ async def shutdown() -> None:
 
 async def startup() -> None:
     if config.ADMIN_ID:
-        await User(int(config.ADMIN_ID)).set_is_admin()
+        admin_id = int(config.ADMIN_ID)
+        await User(admin_id).set_is_admin()
+        logger.info(f"Добавлен администратор с id {admin_id}? -> {await User(admin_id).is_admin()}")
+    if config.VK_ACCESS_TOKEN:
+        my_seria_url_is_update = await bots.update_my_seria_url_by_vk(config.VK_ACCESS_TOKEN)
+        logger.info(f"Адрес сайта обновлен? -> {my_seria_url_is_update}")
     if config.USE_NGROK:
         # pyngrok should only ever be installed or initialized in a dev environment when this flag is set
         from pyngrok import ngrok
