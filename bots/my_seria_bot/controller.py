@@ -1,5 +1,5 @@
 from datetime import timedelta, datetime
-from typing import AsyncIterator, Iterable
+from typing import AsyncIterator
 
 from aiogram.utils.markdown import hlink, hbold
 
@@ -80,10 +80,10 @@ class UserController:
             return {search: serials[search]}
         return serials
 
-    async def _update_serials_last_date(self, update_serials: Iterable[str]) -> bool:
+    async def _update_serials_last_date(self, update_serials: dict[str, str]) -> bool:
         """Для сериалов, у которых запрашивались новинки обновляем дату последнего обновления на сегодняшнюю"""
         serials = await self.get_serials()
-        for serial_name in update_serials:
+        for serial_name in update_serials.keys():
             serials[serial_name] = datetime.today().strftime("%d.%m.%Y")
         return await self._set_serials(serials)
 

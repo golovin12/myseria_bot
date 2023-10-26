@@ -1,3 +1,4 @@
+import asyncio
 import re
 from datetime import datetime
 from typing import AsyncIterator, Iterator, Any
@@ -63,20 +64,22 @@ class MySeriaService:
             page = 1
             last_date_iterator = find_serials_helper.get_date_and_update_serials()
             last_date = next(last_date_iterator)
+            semaphore = asyncio.Semaphore(5)
             async with aiohttp.ClientSession() as session:
                 while page < 120:
-                    page_url = f'{host}/series/page/{page}/'
-                    async with session.get(url=page_url, headers=self.headers) as response:
-                        page_data = await response.text()
-                    soup = BeautifulSoup(page_data, 'lxml')
-                    series_by_dates = soup.find_all('div', class_="episode-group")
-                    for series_block in series_by_dates:
-                        series_date = self._get_date_from_series_block(series_block)
-                        if last_date > series_date:
-                            last_date = next(last_date_iterator)
-                        for seria in self._get_series_by_series_block(series_block):
-                            if seria['name'].capitalize() in find_serials_helper.serials:
-                                yield Seria(**seria, release_date=series_date.strftime("%d.%m.%Y"))
+                    async with semaphore:
+                        page_url = f'{host}/series/page/{page}/'
+                        async with session.get(url=page_url, headers=self.headers) as response:
+                            page_data = await response.text()
+                        soup = BeautifulSoup(page_data, 'lxml')
+                        series_by_dates = soup.find_all('div', class_="episode-group")
+                        for series_block in series_by_dates:
+                            series_date = self._get_date_from_series_block(series_block)
+                            if last_date > series_date:
+                                last_date = next(last_date_iterator)
+                            for seria in self._get_series_by_series_block(series_block):
+                                if seria['name'].capitalize() in find_serials_helper.serials:
+                                    yield Seria(**seria, release_date=series_date.strftime("%d.%m.%Y"))
                     page += 1
         except StopIteration:
             pass
@@ -180,12 +183,16 @@ async def update_my_seria_url_by_vk(vk_access_token: str) -> bool:
 
     :param vk_access_token: ключ доступа для доступа к VK API (пользовательский, сообщества или сервисный)
     """
-    method = 'groups.getById'
-    params = f'group_id=200719078&fields=site&access_token={vk_access_token}&v=5.131'
+    method_name = 'groups.getById'
+    params = {'group_id': 200719078,
+              'fields': 'site',
+              'access_token': vk_access_token,
+              'v': '5.131'
+              }
     # Описание метода: https://dev.vk.com/ru/method/groups.getById
-    vk_api_url = f'https://api.vk.com/method/{method}?{params}'
+    vk_api_url = f'https://api.vk.com/method/{method_name}'
     async with aiohttp.ClientSession() as session:
-        async with session.get(url=vk_api_url) as response:
+        async with session.get(url=vk_api_url, params=params) as response:
             group = await response.json()
         my_seria_url = group.get('response', [{}])[0].get('site')
         if my_seria_url:

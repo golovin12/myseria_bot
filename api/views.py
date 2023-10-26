@@ -16,8 +16,8 @@ async def my_seria_bot(request: Request) -> dict[str, str]:  # noqa F811
 
 @router.post(ADMIN_ROUTE)
 async def admin_bot(request: Request) -> dict[str, str]:  # noqa F811
-    result = await request.json()
-    is_admin = await User(result['message']['from']['id']).is_admin()
-    if request.headers.get('X-Telegram-Bot-Api-Secret-Token') == SECRET_TOKEN and is_admin:
-        await admin_bot_process_new_updates(result)
+    if request.headers.get('X-Telegram-Bot-Api-Secret-Token') == SECRET_TOKEN:
+        result = await request.json()
+        if await User(result.get('message', {}).get('from').get('id', '')).is_admin():
+            await admin_bot_process_new_updates(result)
     return {"ok": "ok"}

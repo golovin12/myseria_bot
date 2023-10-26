@@ -12,7 +12,7 @@ def get_main_keyboard() -> types.ReplyKeyboardMarkup:
     buttons = (types.KeyboardButton(text=f"/{command}") for command, desc in ControlCommand.choices)
     buttons = batched(buttons, 2)
     keyboard = types.ReplyKeyboardMarkup(
-        keyboard=buttons,  # noqa
+        keyboard=buttons,  # type: ignore
         resize_keyboard=True,
         input_field_placeholder="Выберите команду"
     )
