@@ -7,9 +7,9 @@ import aiohttp
 from bs4 import BeautifulSoup
 from fake_useragent import UserAgent
 
-from consts import MY_SERIA_KEY
+from consts import MY_SERIA
 from database.models import SerialSite
-from utils import get_date_by_localize_date_string
+from utils import get_date_by_localize_date_string, url_is_active
 from .serials import FindSerialsHelper, Serial, Seria
 
 
@@ -31,6 +31,7 @@ class MySeriaService:
 
     async def get_serial_info(self, serial_name: str) -> Serial | None:
         """Получить список новых серий у сериала с выбранной конкретной даты"""
+        serial_name = serial_name.strip()
         async with aiohttp.ClientSession() as session:
             page_data = await self._find_serial_on_site(session, serial_name)
             serial_data = self._find_serial_by_search_page(page_data, serial_name)
@@ -56,8 +57,8 @@ class MySeriaService:
                           )
         return None
 
-    async def get_new_series_from_date(self, find_serials_helper: FindSerialsHelper) -> AsyncIterator[Seria]:
-        """Получить информацию о сериале"""
+    async def get_new_series(self, find_serials_helper: FindSerialsHelper) -> AsyncIterator[Seria]:
+        """Получить информацию о новых сериях"""
         # 2 точки выхода: 1) превышен лимит в 120 страниц; 2) все сериалы были просмотрены (StopIteration)
         try:
             host = await self._get_my_seria_url()
@@ -78,7 +79,7 @@ class MySeriaService:
                             if last_date > series_date:
                                 last_date = next(last_date_iterator)
                             for seria in self._get_series_by_series_block(series_block):
-                                if seria['name'].capitalize() in find_serials_helper.serials:
+                                if seria['name'].capitalize() in find_serials_helper.unupdated_serials:
                                     yield Seria(**seria, release_date=series_date.strftime("%d.%m.%Y"))
                     page += 1
         except StopIteration:
@@ -96,7 +97,8 @@ class MySeriaService:
 
     @staticmethod
     async def _get_my_seria_url() -> str:
-        return await SerialSite(MY_SERIA_KEY).get_url()
+        my_seria_site = await SerialSite.get_object(MY_SERIA)
+        return my_seria_site.url
 
     @staticmethod
     def _get_series_by_series_block(series_block: BeautifulSoup) -> Iterator[dict[str, Any]]:
@@ -195,9 +197,11 @@ async def update_my_seria_url_by_vk(vk_access_token: str) -> bool:
         async with session.get(url=vk_api_url, params=params) as response:
             group = await response.json()
         my_seria_url = group.get('response', [{}])[0].get('site')
-        if my_seria_url:
-            my_seria_url = my_seria_url.rstrip('/')
-            async with session.get(my_seria_url) as response:
-                if response.status == 200:
-                    return await SerialSite(MY_SERIA_KEY).set_url(my_seria_url)
+        try:
+            my_seria_site = SerialSite(MY_SERIA, my_seria_url)
+        except ValueError:
+            return False
+
+        if await url_is_active(my_seria_site.url):
+            return await my_seria_site.save()
     return False

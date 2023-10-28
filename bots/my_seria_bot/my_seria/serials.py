@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Iterator
 
+from database.models import Serials
+
 
 @dataclass(frozen=True)
 class Seria:
@@ -20,20 +22,20 @@ class Serial:
 
 
 class FindSerialsHelper:
-    def __init__(self, serials: dict[str, str]):
-        self._all_serials = serials
-        self.serials: set[str] = set()
+    def __init__(self, serials: Serials):
+        self._serials = serials
+        self.unupdated_serials: set[str] = set()
         self.search_dates: dict[datetime, set[str]] = {}
         self._fill_data()
 
     def _fill_data(self) -> None:
-        """Разбирает _all_serials и заполняет serials и search_dates"""
-        for serial_name, last_date in self._all_serials.items():
-            self.serials.add(serial_name)
-            self.search_dates.setdefault(datetime.strptime(last_date, "%d.%m.%Y"), set()).add(serial_name)
+        """Разбирает _serials и заполняет unupdated_serials и search_dates"""
+        for serial_name, last_date in self._serials.items():
+            self.unupdated_serials.add(serial_name)
+            self.search_dates.setdefault(last_date, set()).add(serial_name)
 
     def get_date_and_update_serials(self) -> Iterator[datetime]:
-        """При запросе новой даты обновляет список сериалов"""
-        for last_date, serials in sorted(self.search_dates.items()):
+        """При запросе новой даты обновляет список сериалов (unupdated_serials)"""
+        for last_date, serials in sorted(self.search_dates.items(), key=lambda x: x[0], reverse=True):
             yield last_date
-            self.serials -= serials  # Удаляем сериалы, которые были привязаны к данной дате
+            self.unupdated_serials -= serials  # Удаляем сериалы, которые были привязаны к данной дате

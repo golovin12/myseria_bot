@@ -1,4 +1,3 @@
-from datetime import timedelta, datetime
 from typing import AsyncIterator
 
 from aiogram.utils.markdown import hlink, hbold
@@ -11,39 +10,41 @@ class UserController:
     _my_seria_service_class = MySeriaService
 
     def __init__(self, user_id: int):
-        self.user = User(user_id)
+        self.user_id = user_id
+        self._user = None
         self.my_seria_service = self._my_seria_service_class()
+
+    async def get_user(self) -> User:
+        if self._user is None:
+            self._user = await User.get_object(self.user_id)
+        return self._user
 
     async def reboot(self) -> bool:
         """Очистить список сериалов пользователя"""
-        return await self.user.del_serials()
+        user = await self.get_user()
+        user.serials = {}
+        return await user.save()
 
-    async def get_serials(self) -> dict[str, str]:
+    async def get_user_serials(self) -> list[str]:
         """Получить список отслеживаемых сериалов"""
-        return await self.user.get_serials()
-
-    async def _set_serials(self, serials: dict[str, str]) -> bool:
-        """Изменить список отслеживаемых сериалов"""
-        return await self.user.set_serials(serials)
+        user = await self.get_user()
+        return sorted(serial_name for serial_name in user.serials.keys())
 
     async def add_serial(self, serial_name: str) -> bool:
         """Добавить сериал в список отслеживаемых"""
-        serial_name = self._format_serial_name(serial_name)
-        serials = await self.get_serials()
-        if serial_name in serials:
+        user = await self.get_user()
+        if serial_name in user.serials:
             return True
         if await self.my_seria_service.exist(serial_name):
-            # Задаём дату отслеживания
-            serials[serial_name] = (datetime.today() - timedelta(days=7)).strftime('%d.%m.%Y')
-            return await self._set_serials(serials)
+            user.serials.add(serial_name)
+            return await user.save()
         return False
 
     async def delete_serial(self, serial_name: str) -> bool:
         """Убрать сериал из списка отслеживаемых"""
-        serial_name = self._format_serial_name(serial_name)
-        serials = await self.get_serials()
-        if serials.pop(serial_name, None):
-            return await self._set_serials(serials)
+        user = await self.get_user()
+        if user.serials.pop(serial_name, None):
+            return await user.save()
         return False
 
     async def get_serial_info(self, serial_name: str) -> str:
@@ -57,37 +58,20 @@ class UserController:
                 f'{hbold("Дата выхода серии:")}\n{last_seria.release_date}\n'
                 f'{hbold("Вышедшие озвучки:")}\n{", ".join(last_seria.voices)}\n')
 
-    async def get_new_series(self, search: str = "") -> AsyncIterator[str]:
+    async def get_new_series(self, search: str = None) -> AsyncIterator[str]:
         """Получить информацию о новых сериях"""
-        serials = await self._get_filtered_serials(search)
+        user = await self.get_user()
+        serials = user.serials.filter(search)
         is_have_new_series = False
         find_helper = FindSerialsHelper(serials)
-        async for seria in self.my_seria_service.get_new_series_from_date(find_helper):
+        async for seria in self.my_seria_service.get_new_series(find_helper):
             is_have_new_series = True
             yield (f'{hbold("Серия:")}\n{hlink(seria.name, seria.url)}\n'
                    f'{hbold("Дата выхода серии:")}\n{seria.release_date}\n'
                    f'{hbold("Вышедшие озвучки:")}\n{", ".join(seria.voices)}\n')
-        await self._update_serials_last_date(serials)
+        # todo костыль: получаем юзера заново, чтобы избежать конфликтов, когда с serials работали во время сбора инфо
+        user = await self.get_user()
+        user.serials.actualize(serials)
+        await user.save()
         if not is_have_new_series:
             yield 'Новые серии не найдены.'
-
-    async def _get_filtered_serials(self, search: str) -> dict[str, str]:
-        """Получить отфильтрованный список отслеживаемых сериалов"""
-        serials = await self.get_serials()
-        if search:
-            if search not in serials:
-                return {}
-            return {search: serials[search]}
-        return serials
-
-    async def _update_serials_last_date(self, update_serials: dict[str, str]) -> bool:
-        """Для сериалов, у которых запрашивались новинки обновляем дату последнего обновления на сегодняшнюю"""
-        serials = await self.get_serials()
-        for serial_name in update_serials.keys():
-            serials[serial_name] = datetime.today().strftime("%d.%m.%Y")
-        return await self._set_serials(serials)
-
-    @staticmethod
-    def _format_serial_name(serial_name: str) -> str:
-        """Имя сериала к общему виду"""
-        return serial_name.capitalize()

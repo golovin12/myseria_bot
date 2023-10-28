@@ -17,7 +17,7 @@ async def command_help(message: types.Message):
 @router.message(lambda message: re.fullmatch(rf'^{ControlCommand.NEW_ADDR}$', message.text))
 async def force_update_url(message: types.Message):
     """Команда для обновления адреса сайта вручную"""
-    url = message.text.replace('#new_addr: ', '').rstrip(" /")
+    url = message.text.replace('#new_addr: ', '').removesuffix('/')
     result = await AdminController(message.from_user.id).force_update_my_seria_url(url)
     await message.reply(result)
 

@@ -26,7 +26,7 @@ def get_menu_commands() -> list[types.BotCommand]:
     return bot_commands
 
 
-async def get_paginated_serials_keyboard(serials: dict[str, str], state: FSMContext, method: str = "", page: int = 0,
+async def get_paginated_serials_keyboard(serials: list[str], state: FSMContext, method: str = "", page: int = 0,
                                          items_on_page: int = 10) -> types.InlineKeyboardMarkup:
     # todo упростить код
     if method:
@@ -47,7 +47,7 @@ async def get_paginated_serials_keyboard(serials: dict[str, str], state: FSMCont
         types.InlineKeyboardButton(text=f'Страница {page + 2}', callback_data=f'#page-{page + 1}')
     ) if page + 1 < max_pages else None
 
-    page_serials = itertools.islice(serials.keys(), page * items_on_page, (page + 1) * items_on_page)
+    page_serials = itertools.islice(serials, page * items_on_page, (page + 1) * items_on_page)
     keyboard_buttons = [[types.InlineKeyboardButton(text=serial, callback_data=serial)] for serial in page_serials]
     keyboard_buttons.append(end_buttons)
     keyboard = types.InlineKeyboardMarkup(inline_keyboard=keyboard_buttons)

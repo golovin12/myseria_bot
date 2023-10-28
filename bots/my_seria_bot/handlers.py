@@ -52,7 +52,7 @@ async def add_serials_command(message: types.Message):
 async def command_new_series(message: types.Message, state: FSMContext):
     """Получить информацию о новых сериях"""
     await state.set_state(UserState.new_series)
-    serials = await UserController(message.from_user.id).get_serials()
+    serials = await UserController(message.from_user.id).get_user_serials()
     keyboard = await get_paginated_serials_keyboard(serials, state, CallbackButtonInfo.ALL)
     await message.reply("Выберите сериал, по которому хотите получить новинки", reply_markup=keyboard)
 
@@ -66,14 +66,14 @@ async def command_add_serials(message: types.Message, state: FSMContext):
 @router.message(Command(ControlCommand.DELETE_SERIALS))
 async def command_delete_serials(message: types.Message, state: FSMContext):
     await state.set_state(UserState.delete_serials)
-    serials = await UserController(message.from_user.id).get_serials()
+    serials = await UserController(message.from_user.id).get_user_serials()
     keyboard = await get_paginated_serials_keyboard(serials, state, CallbackButtonInfo.CLOSE)
     await message.reply("Выберите сериал, который хотите удалить", reply_markup=keyboard)
 
 
 @router.message(Command(ControlCommand.MY_SERIALS))
 async def command_my_serials(message: types.Message, state: FSMContext):
-    serials = await UserController(message.from_user.id).get_serials()
+    serials = await UserController(message.from_user.id).get_user_serials()
     if not serials:
         await message.reply("Вы ещё не добавили сериалы для отслеживания. Чтобы добавить, нажмите: /add_serials")
         return
@@ -91,19 +91,19 @@ async def get_new_series(callback_query: types.CallbackQuery, state: FSMContext)
     await callback_query.answer()
     await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=None)
     await callback_query.message.answer("Подождите, информация собирается...")
-    serial_name = callback_query.data
+    serial_name = str(callback_query.data)
     if serial_name == CallbackButtonInfo.ALL:
         new_series = UserController(callback_query.from_user.id).get_new_series()
     else:
         new_series = UserController(callback_query.from_user.id).get_new_series(serial_name)
     async for seria_info in message_per_seconds_limiter(new_series):
-        await callback_query.message.answer(seria_info)
+        await callback_query.message.answer(seria_info, disable_web_page_preview=True)
 
 
 @router.message(UserState.add_serials)
 async def add_serial(message: types.Message):
     """Добавление сериала в список отслеживания"""
-    serial_name = message.text.strip()
+    serial_name = str(message.text)
     await message.reply("Подождите, сериал проверяется...")
     is_added = await UserController(message.from_user.id).add_serial(serial_name)
     if is_added:
@@ -124,11 +124,11 @@ async def delete_serial(callback_query: types.CallbackQuery, state: FSMContext):
         await state.clear()
         await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=None)
         return
-    serial_name = callback_query.data.strip()
+    serial_name = str(callback_query.data)
     user_controller = UserController(callback_query.from_user.id)
     is_deleted = await user_controller.delete_serial(serial_name)
     if is_deleted:
-        serials = await user_controller.get_serials()
+        serials = await user_controller.get_user_serials()
         keyboard = await get_paginated_serials_keyboard(serials, state, CallbackButtonInfo.CLOSE)
         await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=keyboard)
         await callback_query.message.answer(
@@ -148,6 +148,6 @@ async def serial_info(callback_query: types.CallbackQuery, state: FSMContext):
         await state.clear()
         await callback_query.message.edit_reply_markup(callback_query.inline_message_id, reply_markup=None)
         return
-    serial_name = callback_query.data.strip()
+    serial_name = str(callback_query.data)
     info = await UserController(callback_query.from_user.id).get_serial_info(serial_name)
     await callback_query.message.answer(info, disable_web_page_preview=True)

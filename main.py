@@ -6,7 +6,7 @@ import api
 import bots
 import config
 from consts import MY_SERIA_ROUTE, ADMIN_ROUTE, SKIP_UPDATES
-from database.models import User
+from database.models import Admin
 
 logger = logging.getLogger('uvicorn')
 
@@ -24,7 +24,6 @@ async def shutdown() -> None:
         if config.USE_NGROK:
             from pyngrok import ngrok
             ngrok.disconnect(config.BASE_URL)
-        logger.info('shutdown is complete')
     except Exception as e:
         logger.info('shutdown_error:', e)
 
@@ -32,8 +31,8 @@ async def shutdown() -> None:
 async def startup() -> None:
     if config.ADMIN_ID:
         admin_id = int(config.ADMIN_ID)
-        await User(admin_id).set_is_admin()
-        logger.info(f"Добавлен администратор с id {admin_id}? -> {await User(admin_id).is_admin()}")
+        await Admin(admin_id, is_admin=True).save()
+        logger.info(f"Добавлен администратор с id {admin_id}? -> {(await Admin.get_object(admin_id)).is_admin}")
     if config.VK_ACCESS_TOKEN:
         my_seria_url_is_update = await bots.update_my_seria_url_by_vk(config.VK_ACCESS_TOKEN)
         logger.info(f"Адрес сайта обновлен? -> {my_seria_url_is_update}")
@@ -57,7 +56,6 @@ async def startup() -> None:
     await config.admin_bot.set_webhook(f"{config.BASE_URL}/bot{ADMIN_ROUTE}", secret_token=config.SECRET_TOKEN,
                                        drop_pending_updates=SKIP_UPDATES)
     config.admin_dp.include_routers(bots.admin_router)
-    logger.info('startup is complete')
 
 
 app = FastAPI()

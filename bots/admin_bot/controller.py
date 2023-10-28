@@ -1,32 +1,44 @@
-import aiohttp
-
-from consts import MY_SERIA_KEY
-from database.models import User, SerialSite
+from consts import MY_SERIA
+from database.models import Admin, SerialSite
+from utils import url_is_active
 
 
 class AdminController:
     def __init__(self, user_id: int):
-        self.user = User(user_id)
+        self.user_id = user_id
+        self._admin = None
         self._access_denied_msg = "Отказано в доступе"
 
+    async def get_admin(self) -> Admin:
+        if self._admin is None:
+            self._admin = await Admin.get_object(self.user_id)
+        return self._admin
+
     async def create_admin(self, new_admin_id: int) -> str:
-        await User(new_admin_id).set_is_admin()
+        admin = await self.get_admin()
+        admin.is_admin = True
+        await admin.save()
         return f"Юзер с id {new_admin_id} теперь является администратором"
 
     async def delete_admin(self, admin_id: int) -> str:
-        if admin_id == self.user.user_id:
+        admin = await self.get_admin()
+        if admin_id == admin.user_id:
             return "Вы не можете убрать с себя роль администратора"
-        await User(admin_id).del_is_admin()
+        await Admin(admin_id, is_admin=False).save()
         return f"Юзер с id {admin_id} больше не является администратором"
 
     async def get_all_admins(self) -> str:
-        admins = await self.user.get_all_admins()
+        admins = await Admin.get_admins_id()
         return "\n".join(admins)
 
     async def force_update_my_seria_url(self, new_url: str) -> str:
         """Обновляем ссылку на сайт MySeria"""
-        async with aiohttp.request("GET", new_url) as response:
-            if response.status == 200:
-                if await SerialSite(MY_SERIA_KEY).set_url(new_url):
-                    return f'Адрес успешно обновлён на: {new_url}'
+        try:
+            serial_site = SerialSite(MY_SERIA, new_url)
+        except ValueError as err:
+            return str(err)
+
+        if await url_is_active(serial_site.url):
+            if await serial_site.save():
+                return f'Адрес успешно обновлён на: {serial_site.url}'
         return 'Не удалось обновить адрес'

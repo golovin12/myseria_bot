@@ -3,6 +3,8 @@ from datetime import datetime
 from itertools import islice
 from typing import Iterable, AsyncIterable, AsyncIterator, Iterator, TypeVar
 
+import aiohttp
+
 from consts import MONTH_NAMES_RU
 
 T = TypeVar('T')
@@ -44,3 +46,10 @@ def get_date_by_localize_date_string(date_string: str) -> datetime:
     day, month, year = date_string.split()
     month_num = MONTH_NAMES_RU[month]
     return datetime(day=int(day), month=month_num, year=int(year))
+
+
+async def url_is_active(url: str) -> bool:
+    async with aiohttp.request("GET", url) as response:
+        if response.status == 200:
+            return True
+    return False
