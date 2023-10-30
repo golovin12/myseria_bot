@@ -49,12 +49,12 @@ class UserController:
 
     async def get_serial_info(self, serial_name: str) -> str:
         serial = await self.my_seria_service.get_serial_info(serial_name)
-        if not serial:
+        if serial is None:
             return f"Не удалось получить информацию о сериале {serial_name}, попробуйте позже."
         last_seria = serial.last_seria
         return (f'{hbold("Информация о сериале:")}\n{hlink(serial.name, serial.url)}\n'
                 f'{hbold("Последний сезон:")} {serial.last_season}\n'
-                f'{hbold("Последняя серия:")}\n{hlink(last_seria.name, last_seria.url)}\n'
+                f'{hbold("Последняя серия:")}\n{hlink(last_seria.full_name, last_seria.url)}\n'
                 f'{hbold("Дата выхода серии:")}\n{last_seria.release_date}\n'
                 f'{hbold("Вышедшие озвучки:")}\n{", ".join(last_seria.voices)}\n')
 
@@ -66,7 +66,7 @@ class UserController:
         find_helper = FindSerialsHelper(serials)
         async for seria in self.my_seria_service.get_new_series(find_helper):
             is_have_new_series = True
-            yield (f'{hbold("Серия:")}\n{hlink(seria.name, seria.url)}\n'
+            yield (f'{hbold("Серия:")}\n{hlink(seria.full_name, seria.url)}\n'
                    f'{hbold("Дата выхода серии:")}\n{seria.release_date}\n'
                    f'{hbold("Вышедшие озвучки:")}\n{", ".join(seria.voices)}\n')
         # todo костыль: получаем юзера заново, чтобы избежать конфликтов, когда с serials работали во время сбора инфо

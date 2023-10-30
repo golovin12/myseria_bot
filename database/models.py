@@ -54,6 +54,7 @@ class SerialSite(BaseModel):
 
 
 class Serials(UserDict):
+    # todo убрать из models
 
     def filter(self, key: str | None) -> Serials:
         if key is None:

@@ -5,12 +5,17 @@ from typing import Iterator
 from database.models import Serials
 
 
-@dataclass(frozen=True)
+@dataclass
 class Seria:
     name: str
+    number: str
     url: str
     release_date: str
     voices: list[str]
+
+    @property
+    def full_name(self):
+        return f'{self.name} {self.number}'
 
 
 @dataclass(frozen=True)
