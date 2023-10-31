@@ -1,23 +1,21 @@
-from typing import AsyncIterator
+import abc
+from typing import AsyncIterator, Type
 
 from aiogram.utils.markdown import hlink, hbold
 
 from database.models import User
-from .my_seria import FindSerialsHelper, MySeriaService
+from serial_services import BaseSerialService
 
 
-class UserController:
-    _my_seria_service_class = MySeriaService
+class UserController(abc.ABC):
+    serial_service_class: Type[BaseSerialService]
 
     def __init__(self, user_id: int):
         self.user_id = user_id
-        self._user = None
-        self.my_seria_service = self._my_seria_service_class()
+        self.serial_service = self.serial_service_class()
 
     async def get_user(self) -> User:
-        if self._user is None:
-            self._user = await User.get_object(self.user_id)
-        return self._user
+        return await User.get_object(self.user_id)
 
     async def reboot(self) -> bool:
         """Очистить список сериалов пользователя"""
@@ -35,7 +33,7 @@ class UserController:
         user = await self.get_user()
         if serial_name in user.serials:
             return True
-        if await self.my_seria_service.exist(serial_name):
+        if await self.serial_service.exist(serial_name):
             user.serials.add(serial_name)
             return await user.save()
         return False
@@ -48,13 +46,13 @@ class UserController:
         return False
 
     async def get_serial_info(self, serial_name: str) -> str:
-        serial = await self.my_seria_service.get_serial_info(serial_name)
+        serial = await self.serial_service.get_serial_info(serial_name)
         if serial is None:
             return f"Не удалось получить информацию о сериале {serial_name}, попробуйте позже."
         last_seria = serial.last_seria
         return (f'{hbold("Информация о сериале:")}\n{hlink(serial.name, serial.url)}\n'
                 f'{hbold("Последний сезон:")} {serial.last_season}\n'
-                f'{hbold("Последняя серия:")}\n{hlink(last_seria.full_name, last_seria.url)}\n'
+                f'{hbold("Последняя серия:")}\n{hlink(last_seria.name, last_seria.url)}\n'
                 f'{hbold("Дата выхода серии:")}\n{last_seria.release_date}\n'
                 f'{hbold("Вышедшие озвучки:")}\n{", ".join(last_seria.voices)}\n')
 
@@ -63,10 +61,9 @@ class UserController:
         user = await self.get_user()
         serials = user.serials.filter(search)
         is_have_new_series = False
-        find_helper = FindSerialsHelper(serials)
-        async for seria in self.my_seria_service.get_new_series(find_helper):
+        async for seria in self.serial_service.get_new_series(serials):
             is_have_new_series = True
-            yield (f'{hbold("Серия:")}\n{hlink(seria.full_name, seria.url)}\n'
+            yield (f'{hbold("Серия:")}\n{hlink(seria.name, seria.url)}\n'
                    f'{hbold("Дата выхода серии:")}\n{seria.release_date}\n'
                    f'{hbold("Вышедшие озвучки:")}\n{", ".join(seria.voices)}\n')
         # todo костыль: получаем юзера заново, чтобы избежать конфликтов, когда с serials работали во время сбора инфо

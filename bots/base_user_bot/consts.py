@@ -2,11 +2,11 @@ PAGINATION_SERIALS_PREFIX = "#page-serials:"
 
 
 class ControlCommand:
-    ADD_SERIALS = "add_serials"
+    ADD_SERIAL = "add_serial"
     CANCEL = "cancel"
-    DELETE_SERIALS = "delete_serials"
+    DELETE_SERIAL = "delete_serial"
     HELP = "help"
-    MY_SERIALS = "my_serials"
+    SERIAL_INFO = "serial_info"
     REBOOT = "reboot"
     NEW_SERIES = "new_series"
     START = "start"
@@ -14,10 +14,10 @@ class ControlCommand:
     choices = (
         (START, "Приветствие"),
         (HELP, "Помощь"),
-        (ADD_SERIALS, "Добавить сериалы для отслеживания"),
-        (DELETE_SERIALS, "Удалить сериалы из отслеживания"),
+        (ADD_SERIAL, "Добавить сериалы для отслеживания"),
+        (DELETE_SERIAL, "Удалить сериалы из отслеживания"),
         (NEW_SERIES, "Получить информацию о новых сериях"),
-        (MY_SERIALS, "Получить информацию об отслеживаемых сериалах"),
+        (SERIAL_INFO, "Получить информацию об отслеживаемых сериалах"),
         (CANCEL, "Отменить команду"),
         (REBOOT, "Очистить список отслеживаемых сериалов"),
     )

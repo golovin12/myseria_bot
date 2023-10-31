@@ -1,10 +1,13 @@
-SKIP_UPDATES = False
-MY_SERIA_ROUTE = "/my_seria"
-ADMIN_ROUTE = "/admin"
+ADMIN_KEY = "admin"
 
-MY_SERIA = 'my_seria'  # Ключ для получения url к сайту MySeria
+MAX_NEW_SERIES_CONNECTIONS = 5  # количество юзеров, которые могут одновременно запрашивать инфо о сериалах
+LIMIT_SEARCH_DEPTH = 120
 
-MONTH_NAMES_RU = {
-    "января": 1, "февраля": 2, "марта": 3, "апреля": 4, "мая": 5, "июня": 6, "июля": 7, "августа": 8, "сентября": 9,
-    "октября": 10, "ноября": 11, "декабря": 12,
-}
+
+class MySeria:
+    KEY = 'my_seria'
+    VK_GROUP_ID = 200719078  # идентификатор ВК группы сайта с сериалами
+
+
+class Zetflix:
+    KEY = 'zetflix'

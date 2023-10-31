@@ -1,6 +1,6 @@
-from consts import MY_SERIA
+from common_tools.async_connection import url_is_active
+from consts import MySeria, Zetflix
 from database.models import Admin, SerialSite
-from utils import url_is_active
 
 
 class AdminController:
@@ -34,7 +34,19 @@ class AdminController:
     async def force_update_my_seria_url(self, new_url: str) -> str:
         """Обновляем ссылку на сайт MySeria"""
         try:
-            serial_site = SerialSite(MY_SERIA, new_url)
+            serial_site = SerialSite(MySeria.KEY, new_url)
+        except ValueError as err:
+            return str(err)
+
+        if await url_is_active(serial_site.url):
+            if await serial_site.save():
+                return f'Адрес успешно обновлён на: {serial_site.url}'
+        return 'Не удалось обновить адрес'
+
+    async def force_update_zetflix_url(self, new_url: str) -> str:
+        """Обновляем ссылку на сайт Zetflix"""
+        try:
+            serial_site = SerialSite(Zetflix.KEY, new_url)
         except ValueError as err:
             return str(err)
 

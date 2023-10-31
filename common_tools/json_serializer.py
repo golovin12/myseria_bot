@@ -1,10 +1,16 @@
 from collections import UserDict
 from datetime import datetime
+from typing import Any
 
 
-def dt_serializer(obj):
-    """JSON serializer for objects not serializable by default json code"""
+def dict_date_serializer(obj: Any) -> Any:
+    """
+    JSON serializer
 
+    datetime -> "%d.%m.%Y"
+
+    UserDict -> dict
+    """
     if isinstance(obj, datetime):
         return obj.strftime("%d.%m.%Y")
     elif isinstance(obj, UserDict):

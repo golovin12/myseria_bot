@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import abc
 import json
-from collections import UserDict
-from datetime import datetime, timedelta
 
+from common_tools.json_serializer import dict_date_serializer
 from config import aioredis
-from database.errors import ObjectNotFoundError
-from database.fields import CharField, UrlField, IntegerField, BooleanField, JsonField
-from database.utils import dt_serializer
+from serial_services import UserSerials
+from .errors import ObjectNotFoundError
+from .fields import CharField, UrlField, IntegerField, BooleanField, JsonField
 
 
 class BaseModel(abc.ABC):
@@ -53,51 +52,9 @@ class SerialSite(BaseModel):
         return bool(await aioredis.set(redis_key, self.url))
 
 
-class Serials(UserDict):
-    # todo убрать из models
-
-    def filter(self, key: str | None) -> Serials:
-        if key is None:
-            return self
-        elif key in self:
-            return self.__class__({key: self[key]})
-        return self.__class__()
-
-    def add(self, key):
-        """Добавление нового сериала"""
-        self[key] = datetime.today() - timedelta(days=7)  # Устанавливаем last_update_date с запасом
-
-    def actualize(self, serials: Serials):
-        """Для сериалов, у которых запрашивались новинки обновляем дату последнего обновления на сегодняшнюю"""
-        for serial_name in serials.keys():
-            if serial_name in self:
-                self[serial_name] = datetime.today()
-
-    def __contains__(self, key: str):
-        key = key.strip().capitalize()
-        return super().__contains__(key)
-
-    def __getitem__(self, key: str):
-        key = key.strip().capitalize()
-        return super().__getitem__(key)
-
-    def __setitem__(self, key: str, value: str | datetime) -> None:
-        key = key.strip().capitalize()
-        if isinstance(value, str):
-            try:
-                super().__setitem__(key, datetime.strptime(value, '%d.%m.%Y'))
-                return
-            except ValueError:
-                raise ValueError('last_update_date must be stringformat %d.%m.%Y')
-        elif isinstance(value, datetime):
-            super().__setitem__(key, value)
-            return
-        raise ValueError('last_update_date must be datetime object or stringformat %d.%m.%Y')
-
-
 class User(BaseModel):
     user_id: int = IntegerField()
-    serials: Serials = JsonField(user_type=Serials)
+    serials: UserSerials = JsonField(user_type=UserSerials)
 
     @staticmethod
     def _get_redis_key_by_user_id(user_id: int) -> str:
@@ -118,7 +75,7 @@ class User(BaseModel):
         except ValueError:
             raise ObjectNotFoundError
 
-    def __init__(self, user_id: int, serials: dict | Serials):
+    def __init__(self, user_id: int, serials: dict | UserSerials):
         self.user_id = user_id
         self.serials = serials
 
@@ -129,7 +86,7 @@ class User(BaseModel):
         "{user_id}_serials": json.dumps({serial_name: %d.%m.%Y, ...})
         """
         redis_key = self._get_redis_key_by_user_id(self.user_id)
-        return bool(await aioredis.set(redis_key, json.dumps(self.serials, default=dt_serializer)))
+        return bool(await aioredis.set(redis_key, json.dumps(self.serials, default=dict_date_serializer)))
 
 
 class Admin(BaseModel):
