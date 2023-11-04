@@ -11,3 +11,4 @@ class MySeria:
 
 class Zetflix:
     KEY = 'zetflix'
+    VK_GROUP_ID = 199158228

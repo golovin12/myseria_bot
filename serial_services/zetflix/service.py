@@ -22,6 +22,35 @@ class ZetflixService(BaseSerialService):
         headers['Referer'] = 'https://www.google.com/'
         return headers
 
+    @classmethod
+    async def update_url_by_vk(cls, vk_access_token: str) -> bool:
+        """
+        Получает актуальный адрес сайта со страницы ВК и обновляет его в бд
+
+        :param vk_access_token: ключ доступа для доступа к VK API (пользовательский, сообщества или сервисный)
+        """
+        method_name = 'groups.getById'
+        params = {'group_id': Zetflix.VK_GROUP_ID,
+                  'fields': 'site',
+                  'access_token': vk_access_token,
+                  'v': '5.131'
+                  }
+        # Описание метода: https://dev.vk.com/ru/method/groups.getById
+        vk_api_url = f'https://api.vk.com/method/{method_name}'
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url=vk_api_url, params=params) as response:
+                group = await response.json()
+            zetflix_url = group.get('response', [{}])[0].get('site')
+
+            try:
+                zetflix_site = SerialSite(cls.serial_site_key, zetflix_url)
+            except ValueError:
+                return False
+            async with session.get(url=zetflix_url, params=params, headers=cls._get_headers()) as response:
+                if response.status == 200:
+                    return await zetflix_site.save()
+        return False
+
     async def get_host(self) -> str:
         """Получение адреса сайта из бд"""
         my_seria_site = await SerialSite.get_object(self.serial_site_key)
@@ -59,7 +88,10 @@ class ZetflixService(BaseSerialService):
         """Получить информацию о новых сериях"""
         async with aiohttp.ClientSession() as session:
             for s_name, s_last_date in serials.items():
-                serial_url, serial_name = await self._find_serial_on_site(session, s_name)
+                serial_data = await self._find_serial_on_site(session, s_name)
+                if serial_data is None:
+                    continue
+                serial_url, serial_name = serial_data
                 # Получение списка серий
                 async with session.get(url=serial_url, headers=self.headers) as response:
                     serial_page_data = await response.text()

@@ -23,8 +23,8 @@ class BaseBot(abc.ABC):
         self.key = key
         self.bot = Bot(bot_token, parse_mode=ParseMode.HTML)
         self.dp = Dispatcher(storage=self._get_fsm_storage(redis_host))
-        self.handlers = self._get_handlers()
         self.dp.update.outer_middleware(self.errors_middleware)
+        self.handlers = self._get_handlers()
         self.register_handlers_first()  # хандлеры, которые должны выполняться всегда (в основном - обработчики команд)
         self.register_handler_second()  # хандлеры, которые зависят от состояний
 
