@@ -1,6 +1,5 @@
 import re
 
-from aiogram.filters import Command
 from aiogram.types import Message
 
 from .admin_base_handler import AdminHandler

@@ -1,9 +1,9 @@
 from bots.base_user_bot import UserBot, UserController
-from serial_services.my_seria import MySeriaService
+from serial_services.zetflix import ZetflixService
 
 
 class ZetflixUserController(UserController):
-    serial_service_class = MySeriaService  # todo ZetflixService
+    serial_service_class = ZetflixService
 
 
 class ZetflixBot(UserBot):

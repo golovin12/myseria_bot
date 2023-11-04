@@ -1,14 +1,19 @@
 import abc
-from typing import Any
+import logging
+from typing import Any, Dict, Callable, Awaitable
 
 import redis
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
+from aiogram.exceptions import AiogramError
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
 from aiogram.types import Update
 
+from database import ObjectNotFoundError
+from serial_services import ParsingError
 from .handler import BaseHandler
-from .handler_errors import ErrorsHandler
+
+logger = logging.getLogger(__name__)
 
 
 class BaseBot(abc.ABC):
@@ -19,6 +24,7 @@ class BaseBot(abc.ABC):
         self.bot = Bot(bot_token, parse_mode=ParseMode.HTML)
         self.dp = Dispatcher(storage=self._get_fsm_storage(redis_host))
         self.handlers = self._get_handlers()
+        self.dp.update.outer_middleware(self.errors_middleware)
         self.register_handlers_first()  # хандлеры, которые должны выполняться всегда (в основном - обработчики команд)
         self.register_handler_second()  # хандлеры, которые зависят от состояний
 
@@ -27,8 +33,9 @@ class BaseBot(abc.ABC):
             return RedisStorage(redis.asyncio.Redis(host=redis_host, db=2, decode_responses=True),
                                 key_builder=DefaultKeyBuilder(prefix=f"fsm_{self.key}"))
 
+    @abc.abstractmethod
     def _get_handlers(self) -> list[BaseHandler]:
-        return [ErrorsHandler(self.dp)]
+        ...
 
     async def on_startapp(self, url: str, secret_token: str):
         await self.bot.set_webhook(f"{url}/bot/{self.key}", secret_token=secret_token,
@@ -41,6 +48,15 @@ class BaseBot(abc.ABC):
     async def process_new_updates(self, data: dict[Any, Any]) -> None:
         update = Update.model_validate(data, context={"bot": self.bot})
         await self.dp.feed_update(self.bot, update)
+
+    async def errors_middleware(self, handler: Callable[[Update, Dict[str, Any]], Awaitable[Any]],
+                                event: Update, data: Dict[str, Any]):
+        try:
+            return await handler(event, data)
+        except (ObjectNotFoundError, ParsingError, AiogramError) as e:
+            logger.exception(e)
+            print(e, '\n', event, '\n', data)
+            await self.bot.send_message(data['event_from_user'].id, f'Произошла ошибка, попробуйте позже. {e}')
 
     def register_handlers_first(self):
         for handler in self.handlers:

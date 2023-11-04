@@ -20,7 +20,7 @@ ADMIN_ID = os.getenv("ADMIN_ID", "")
 
 SECRET_TOKEN = os.getenv("SECRET_TOKEN")
 
-SKIP_UPDATES = os.environ.get("SKIP_UPDATES", "True") == "False"
+SKIP_UPDATES = os.environ.get("SKIP_UPDATES", "True") == "True"
 
 VK_ACCESS_TOKEN = os.getenv("VK_ACCESS_TOKEN")
 

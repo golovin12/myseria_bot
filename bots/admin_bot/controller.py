@@ -50,7 +50,6 @@ class AdminController:
         except ValueError as err:
             return str(err)
 
-        if await url_is_active(serial_site.url):
-            if await serial_site.save():
-                return f'Адрес успешно обновлён на: {serial_site.url}'
+        if await serial_site.save():
+            return f'Адрес успешно обновлён на: {serial_site.url}'
         return 'Не удалось обновить адрес'

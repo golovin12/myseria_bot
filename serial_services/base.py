@@ -7,8 +7,6 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import AsyncIterator, Iterator
 
-from fake_useragent import UserAgent
-
 
 @dataclass(frozen=True)
 class Seria:
@@ -53,7 +51,7 @@ class UserSerials(UserDict):
         for last_date, serials in itertools.groupby(serials_by_last_update_date, key=lambda x: self[x]):
             yield last_date, set(serials)
 
-    def __contains__(self, key: str):
+    def __contains__(self, key: str) -> bool:
         key = key.strip().capitalize()
         return super().__contains__(key)
 
@@ -79,7 +77,13 @@ class BaseSerialService(abc.ABC):
     """Базовый класс для создания сервисов по получению информации о сериалах с сайтов"""
 
     def __init__(self):
-        self.headers = {'user-agent': UserAgent().random}
+        self.headers = self._get_headers()
+
+    @staticmethod
+    def _get_headers():
+        user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) ' \
+                     'Chrome/118.0.0.0 Safari/537.36'
+        return {'user-agent': user_agent}
 
     @abc.abstractmethod
     async def get_host(self) -> str:

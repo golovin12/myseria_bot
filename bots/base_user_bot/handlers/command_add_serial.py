@@ -22,13 +22,16 @@ class CommandAddSerial(UserHandler):
         """Добавление сериала в список отслеживания"""
         serial_name = str(message.text)
         await message.reply("Подождите, сериал проверяется...")
-        is_added = await self.controller(message.from_user.id).add_serial(serial_name)
+        user_controller = self.controller(message.from_user.id)
+        is_added = await user_controller.add_serial(serial_name)
         if is_added:
             await message.answer(
                 f"Сериал {serial_name} был успешно добавлен!\nМожете указать название другого сериала для добавления."
             )
         else:
-            # todo ссылка на актуальный сайт (из бота)
+            host = await user_controller.serial_service.get_host()
             await message.answer(
-                f"Не удалось добавить сериал {serial_name} (убедитесь, что сериал с таким названием есть на сайте MySeria)"
+                f"Не удалось добавить сериал {serial_name} "
+                f"(убедитесь, что сериал с таким названием есть на сайте {host})",
+                disable_web_page_preview=True
             )

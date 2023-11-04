@@ -1,6 +1,5 @@
 import abc
 import re
-from datetime import datetime
 from typing import Any, Collection
 
 
@@ -51,18 +50,6 @@ class BooleanField(ValidateField):
         if isinstance(value, bool):
             return value
         raise ValueError(f'{name} must be int')
-
-
-class DateField(ValidateField):
-    def validate(self, name: str, value: Any) -> datetime:
-        if isinstance(value, str):
-            try:
-                return datetime.strptime(value, '%d.%m.%Y')
-            except ValueError:
-                raise ValueError(f'{name} must be stringformat %d.%m.%Y')
-        elif isinstance(value, datetime):
-            return value
-        raise ValueError(f'{name} must be datetime or stringformat %d.%m.%Y')
 
 
 class JsonField(ValidateField):
