@@ -1,4 +1,4 @@
 from .bot import BaseBot
-from .handler import BaseHandler
+from .handlers import BaseHandler
 
 __all__ = ('BaseBot', 'BaseHandler')

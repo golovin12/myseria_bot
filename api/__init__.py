@@ -1,3 +1,3 @@
-from .views import router
+from .routers import bot_router
 
-__all__ = ('router',)
+__all__ = ('bot_router',)

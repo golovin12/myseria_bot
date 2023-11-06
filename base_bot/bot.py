@@ -9,9 +9,10 @@ from aiogram.exceptions import AiogramError
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
 from aiogram.types import Update
 
+from consts import RedisDatabases
 from database import ObjectNotFoundError
 from serial_services import ParsingError
-from .handler import BaseHandler
+from .handlers import BaseHandler
 
 logger = logging.getLogger(__name__)
 
@@ -30,8 +31,8 @@ class BaseBot(abc.ABC):
 
     def _get_fsm_storage(self, redis_host: str | None) -> RedisStorage | None:
         if redis_host:
-            return RedisStorage(redis.asyncio.Redis(host=redis_host, db=2, decode_responses=True),
-                                key_builder=DefaultKeyBuilder(prefix=f"fsm_{self.key}"))
+            aioredis = redis.asyncio.Redis(host=redis_host, db=RedisDatabases.fsm_storage, decode_responses=True)
+            return RedisStorage(aioredis, key_builder=DefaultKeyBuilder(prefix=f"fsm_{self.key}"))
 
     @abc.abstractmethod
     def _get_handlers(self) -> list[BaseHandler]:
@@ -53,10 +54,14 @@ class BaseBot(abc.ABC):
                                 event: Update, data: Dict[str, Any]):
         try:
             return await handler(event, data)
-        except (ObjectNotFoundError, ParsingError, AiogramError) as e:
+        except (ObjectNotFoundError, ParsingError) as e:
             logger.exception(e)
-            print(e, '\n', event, '\n', data)
+            print(f'error event: {event}')
             await self.bot.send_message(data['event_from_user'].id, f'Произошла ошибка, попробуйте позже. {e}')
+        except AiogramError as e:
+            logger.exception(e)
+            print(f'error event: {event}')
+            await self.bot.send_message(data['event_from_user'].id, 'Не удалось обработать запрос.')
 
     def register_handlers_first(self):
         for handler in self.handlers:

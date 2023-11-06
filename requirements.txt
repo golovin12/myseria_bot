@@ -3,6 +3,7 @@ aiohttp==3.8.6
 beautifulsoup4==4.12.2
 fastapi==0.103.2
 flake8==6.1.0
+httpx==0.25.1
 lxml==4.9.3
 pyngrok==7.0.0
 python-dotenv==1.0.0

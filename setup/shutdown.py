@@ -1,19 +1,19 @@
 import logging
 
-import config
+from config import settings
 
 logger = logging.getLogger(__name__)
 
 
 async def shutdown() -> None:
     try:
-        await config.aioredis.aclose()
+        await settings.aioredis.aclose()
 
-        for bot in config.user_bots.values():
+        for bot in settings.user_bots.values():
             await bot.on_shutdown()
 
-        if config.USE_NGROK:
+        if settings.USE_NGROK:
             from pyngrok import ngrok
-            ngrok.disconnect(config.BASE_URL)
+            ngrok.disconnect(settings.BASE_URL)
     except Exception as e:
         logger.exception(e)
