@@ -11,8 +11,8 @@ from .fields import CharField, UrlField, IntegerField, BooleanField, JsonField
 
 
 class BaseModel(abc.ABC):
-    @classmethod
-    def connection(cls):
+    @staticmethod
+    def get_connection():
         return settings.aioredis
 
     @classmethod
@@ -36,7 +36,7 @@ class SerialSite(BaseModel):
     @classmethod
     async def get_object(cls, name: str) -> SerialSite:
         redis_key = cls._get_redis_key(name)
-        url: str = await cls.connection().get(redis_key)
+        url: str = await cls.get_connection().get(redis_key)
         try:
             return cls(name, url)
         except ValueError:
@@ -53,7 +53,7 @@ class SerialSite(BaseModel):
         "{name}_site": url
         """
         redis_key = self._get_redis_key(self.name)
-        return bool(await self.connection().set(redis_key, self.url))
+        return bool(await self.get_connection().set(redis_key, self.url))
 
 
 class User(BaseModel):
@@ -67,7 +67,7 @@ class User(BaseModel):
     @classmethod
     async def _get_user_serials(cls, user_id: int) -> dict:
         redis_key = cls._get_redis_key_by_user_id(user_id)
-        serials_str: str = await cls.connection().get(redis_key)
+        serials_str: str = await cls.get_connection().get(redis_key)
         serials = json.loads(serials_str) if serials_str else {}  # Обрабатываем случаи, когда информации о юзере нет
         return serials
 
@@ -90,7 +90,7 @@ class User(BaseModel):
         "{user_id}_serials": json.dumps({serial_name: %d.%m.%Y, ...})
         """
         redis_key = self._get_redis_key_by_user_id(self.user_id)
-        return bool(await self.connection().set(redis_key, json.dumps(self.serials, default=dict_date_serializer)))
+        return bool(await self.get_connection().set(redis_key, json.dumps(self.serials, default=dict_date_serializer)))
 
 
 class Admin(BaseModel):
@@ -104,7 +104,7 @@ class Admin(BaseModel):
     @classmethod
     async def get_object(cls, user_id: int) -> Admin:
         redis_key = cls._get_redis_key()
-        is_admin = bool(await cls.connection().sismember(redis_key, str(user_id)))
+        is_admin = bool(await cls.get_connection().sismember(redis_key, str(user_id)))
         try:
             return cls(user_id, is_admin)
         except ValueError:
@@ -121,7 +121,7 @@ class Admin(BaseModel):
     async def get_admins_id(cls) -> set[str]:
         """Возвращает идентификаторы юзеров с правами администратора"""
         redis_key = cls._get_redis_key()
-        return await cls.connection().smembers(redis_key)
+        return await cls.get_connection().smembers(redis_key)
 
     def __init__(self, user_id, is_admin):
         self.user_id = user_id
@@ -135,5 +135,5 @@ class Admin(BaseModel):
         """
         redis_key = self._get_redis_key()
         if self.is_admin:
-            return bool(await self.connection().sadd(redis_key, str(self.user_id)))
-        return bool(await self.connection().srem(redis_key, str(self.user_id)))
+            return bool(await self.get_connection().sadd(redis_key, str(self.user_id)))
+        return bool(await self.get_connection().srem(redis_key, str(self.user_id)))
