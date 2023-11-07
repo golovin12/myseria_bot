@@ -10,6 +10,7 @@ class ProductionSettings:
     def __init__(self):
         self.ENV_NAME = 'PROD'
         self.REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+        # хранилище для database.models
         self.aioredis = redis.asyncio.Redis(host=self.REDIS_HOST, db=RedisDatabases.default, decode_responses=True)
 
         self.ADMIN_BOT_TOKEN = os.getenv('ADMIN_BOT_TOKEN', '')

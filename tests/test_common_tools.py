@@ -13,7 +13,7 @@ from common_tools.json_serializer import dict_date_serializer
 from common_tools.sequence import batched
 
 
-class TestCommonTools(TestCase):
+class CommonToolsTest(TestCase):
     def test_url_is_active(self):
         with patch('aiohttp.request') as mock_request:
             client_response = mock_request.return_value.__aenter__.return_value

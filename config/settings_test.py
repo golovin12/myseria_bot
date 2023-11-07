@@ -10,6 +10,7 @@ class TestSettings:
     def __init__(self):
         self.ENV_NAME = 'TEST'
         self.REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+        # хранилище для database.models
         self._aioredis = None
 
         self.ADMIN_BOT_TOKEN = 'admin:bot_token'
@@ -34,7 +35,7 @@ class TestSettings:
 
     @property
     def aioredis(self):
-        # хранилище для database.models
+        # в тестах соединение закрывается, и приходится его заново открывать
         if self._aioredis is None or self._aioredis.connection is None:
             self._aioredis = redis.asyncio.Redis(host=self.REDIS_HOST, db=RedisDatabases.test, decode_responses=True)
         return self._aioredis

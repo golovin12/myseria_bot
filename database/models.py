@@ -7,7 +7,7 @@ from common_tools.json_serializer import dict_date_serializer
 from config import settings
 from serial_services import UserSerials
 from .errors import ObjectNotFoundError
-from .fields import CharField, UrlField, IntegerField, BooleanField, JsonField
+from .fields import CharField, UrlField, PositiveIntegerField, BooleanField, JsonField
 
 
 class BaseModel(abc.ABC):
@@ -26,7 +26,7 @@ class BaseModel(abc.ABC):
 
 
 class SerialSite(BaseModel):
-    name: str = CharField(empty_allowed=False)
+    name: str = CharField(empty_allowed=False, is_pk=True)
     url: str = UrlField()
 
     @staticmethod
@@ -57,7 +57,7 @@ class SerialSite(BaseModel):
 
 
 class User(BaseModel):
-    user_id: int = IntegerField()
+    user_id: int = PositiveIntegerField(is_pk=True)
     serials: UserSerials = JsonField(user_type=UserSerials)
 
     @staticmethod
@@ -94,7 +94,7 @@ class User(BaseModel):
 
 
 class Admin(BaseModel):
-    user_id: int = IntegerField()
+    user_id: int = PositiveIntegerField(is_pk=True)
     is_admin: bool = BooleanField()
 
     @staticmethod

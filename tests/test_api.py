@@ -12,7 +12,7 @@ from database.models import Admin
 from .base_test_case import DBTestCase
 
 
-class TestBotApi(DBTestCase):
+class BotApiTest(DBTestCase):
 
     def setUp(self) -> None:
         super().setUp()
