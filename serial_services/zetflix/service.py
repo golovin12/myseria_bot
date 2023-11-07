@@ -4,6 +4,7 @@ from typing import AsyncIterator
 
 import aiohttp
 
+from common_tools.async_connection import url_is_active
 from consts import Zetflix
 from database.models import SerialSite
 from serial_services import BaseSerialService, Serial, Seria, UserSerials
@@ -40,15 +41,15 @@ class ZetflixService(BaseSerialService):
         async with aiohttp.ClientSession() as session:
             async with session.get(url=vk_api_url, params=params) as response:
                 group = await response.json()
-            zetflix_url = group.get('response', [{}])[0].get('site')
+        zetflix_url = group.get('response', [{}])[0].get('site')
 
-            try:
-                zetflix_site = SerialSite(cls.serial_site_key, zetflix_url)
-            except ValueError:
-                return False
-            async with session.get(url=zetflix_url, params=params, headers=cls._get_headers()) as response:
-                if response.status == 200:
-                    return await zetflix_site.save()
+        try:
+            zetflix_site = SerialSite(cls.serial_site_key, zetflix_url)
+        except ValueError:
+            return False
+
+        if await url_is_active(zetflix_site.url, headers=cls._get_headers()):
+            return await zetflix_site.save()
         return False
 
     async def get_host(self) -> str:
