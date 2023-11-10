@@ -56,11 +56,12 @@ class UserSerials(UserDict):
             if serial_name in self:
                 self[serial_name] = datetime.today()
 
-    def add(self, key):
+    def add(self, key: str):
         """Добавление нового сериала"""
         self[key] = datetime.now() - timedelta(days=7)  # Устанавливаем last_update_date с запасом
 
     def filter(self, key: str | None = None) -> UserSerials:
+        """Фильтрация по ключу."""
         if key is None:
             return self
         elif key in self:
@@ -68,6 +69,7 @@ class UserSerials(UserDict):
         return self.__class__()
 
     def group_by_date(self) -> Iterator[tuple[datetime, set[str]]]:
+        """Группировка сериалов по дате"""
         serials_by_last_update_date = sorted(self.keys(), key=lambda x: self[x], reverse=True)
         for last_date, serials in itertools.groupby(serials_by_last_update_date, key=lambda x: self[x]):
             yield last_date, set(serials)
