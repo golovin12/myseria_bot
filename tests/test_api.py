@@ -41,7 +41,7 @@ class BotApiTest(DBTestCase):
             self.assertEqual(response.status_code, 422)
             # Заголовок с токеном не валиден
             response = self.client.post(route.path, headers=self.invalid_headers)
-            self.assertEqual(response.status_code, 400)
+            self.assertEqual(response.status_code, 422)
             # Заголовок с токеном валиден
             response = self.client.post(route.path, json={}, headers=self.valid_headers)
             self.assertEqual(response.status_code, 200)

@@ -8,7 +8,8 @@ from config import settings
 class DBTestCase(TestCase):
     def setUp(self) -> None:
         if settings.ENV_NAME != "TEST":
-            raise Exception("Тесты можно запускать только с переменной окружения ENV_NAME=TEST")
+            raise Exception("Тесты, в которых есть работа с бд, "
+                            "можно запускать только с переменной окружения ENV_NAME=TEST")
 
     def tearDown(self) -> None:
         warnings.simplefilter("ignore", ResourceWarning)
