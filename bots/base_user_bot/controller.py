@@ -17,17 +17,6 @@ class UserController(abc.ABC):
     async def get_user(self) -> User:
         return await User.get_object(self.user_id)
 
-    async def reboot(self) -> bool:
-        """Очистить список сериалов пользователя"""
-        user = await self.get_user()
-        user.serials = {}
-        return await user.save()
-
-    async def get_user_serials(self) -> list[str]:
-        """Получить список отслеживаемых сериалов"""
-        user = await self.get_user()
-        return sorted(serial_name for serial_name in user.serials.keys())
-
     async def add_serial(self, serial_name: str) -> bool:
         """Добавить сериал в список отслеживаемых"""
         user = await self.get_user()
@@ -44,6 +33,11 @@ class UserController(abc.ABC):
         if user.serials.pop(serial_name, None):
             return await user.save()
         return False
+
+    async def get_user_serials(self) -> list[str]:
+        """Получить список отслеживаемых сериалов"""
+        user = await self.get_user()
+        return sorted(serial_name for serial_name in user.serials.keys())
 
     async def get_serial_info(self, serial_name: str) -> str:
         serial = await self.serial_service.get_serial_info(serial_name)
@@ -72,3 +66,9 @@ class UserController(abc.ABC):
         await user.save()
         if not is_have_new_series:
             yield 'Новые серии не найдены.'
+
+    async def reboot(self) -> bool:
+        """Очистить список сериалов пользователя"""
+        user = await self.get_user()
+        user.serials = {}
+        return await user.save()

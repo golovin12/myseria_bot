@@ -29,15 +29,6 @@ class BaseBot(abc.ABC):
         self.register_handlers_first()  # хандлеры, которые должны выполняться всегда (в основном - обработчики команд)
         self.register_handler_second()  # хандлеры, которые зависят от состояний
 
-    def _get_fsm_storage(self, redis_host: str | None) -> RedisStorage | None:
-        if redis_host:
-            aioredis = redis.asyncio.Redis(host=redis_host, db=RedisDatabases.fsm_storage, decode_responses=True)
-            return RedisStorage(aioredis, key_builder=DefaultKeyBuilder(prefix=f"fsm_{self.key}"))
-
-    @abc.abstractmethod
-    def _get_handlers(self) -> list[BaseHandler]:
-        ...
-
     async def on_startapp(self, url: str, secret_token: str):
         await self.bot.set_webhook(f"{url}/bot/{self.key}", secret_token=secret_token,
                                    drop_pending_updates=self.skip_updates)
@@ -70,3 +61,12 @@ class BaseBot(abc.ABC):
     def register_handler_second(self):
         for handler in self.handlers:
             handler.register_second()
+
+    @abc.abstractmethod
+    def _get_handlers(self) -> list[BaseHandler]:
+        ...
+
+    def _get_fsm_storage(self, redis_host: str | None) -> RedisStorage | None:
+        if redis_host:
+            aioredis = redis.asyncio.Redis(host=redis_host, db=RedisDatabases.fsm_storage, decode_responses=True)
+            return RedisStorage(aioredis, key_builder=DefaultKeyBuilder(prefix=f"fsm_{self.key}"))

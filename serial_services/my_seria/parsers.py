@@ -93,8 +93,7 @@ class NewSeriesPageParser(BaseParser):
         except (AttributeError, ValueError, KeyError):
             raise ParsingError('Ошибка при разборе информации о серии')
 
-    @staticmethod
-    def _get_series_info(series_block: BeautifulSoup) -> SeriaInfoIterator:
+    def _get_series_info(self, series_block: BeautifulSoup) -> SeriaInfoIterator:
         """Получить информацию о сериях из блока с сериями"""
         series_items = series_block.find_all('div', class_="item")
         for seria_item in series_items:

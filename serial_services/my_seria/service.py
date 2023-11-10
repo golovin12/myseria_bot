@@ -51,34 +51,6 @@ class MySeriaService(BaseSerialService):
         my_seria_site = await SerialSite.get_object(self.serial_site_key)
         return my_seria_site.url
 
-    async def exist(self, serial_name: str) -> bool:
-        """Проверяет, есть ли сериал с таким названием"""
-        async with aiohttp.ClientSession() as session:
-            serial_data = await self._find_serial_on_site(session, serial_name)
-        if serial_data:
-            return True
-        return False
-
-    async def get_serial_info(self, serial_name: str) -> Serial | None:
-        """Получить информацию о сериале"""
-        serial_name = serial_name.strip()
-        async with aiohttp.ClientSession() as session:
-            # Поиск сериала
-            serial_data = await self._find_serial_on_site(session, serial_name)
-            if serial_data is None:
-                return None
-            serial_url, serial_name = serial_data
-            # Получение недостающей информации о сериале
-            async with session.get(url=serial_url, headers=self.headers) as response:
-                serial_page_data = await response.text()
-            last_seria_url, last_season = SerialPageParser(serial_page_data).get_serial_data()
-            # Получение информации о последней серии
-            async with session.get(url=last_seria_url, headers=self.headers) as response:
-                seria_page_data = await response.text()
-            seria_name, seria_release, seria_voices = SeriaPageParser(seria_page_data).get_seria_data()
-            last_seria = Seria(name=seria_name, url=last_seria_url, release_date=seria_release, voices=seria_voices)
-        return Serial(name=serial_name, url=serial_url, last_season=last_season, last_seria=last_seria)
-
     async def get_new_series(self, serials: UserSerials) -> AsyncIterator[Seria]:
         """Получить информацию о новых сериях"""
         host = await self.get_host()
@@ -114,6 +86,34 @@ class MySeriaService(BaseSerialService):
                     page += 1
         except StopIteration:
             pass
+
+    async def get_serial_info(self, serial_name: str) -> Serial | None:
+        """Получить информацию о сериале"""
+        serial_name = serial_name.strip()
+        async with aiohttp.ClientSession() as session:
+            # Поиск сериала
+            serial_data = await self._find_serial_on_site(session, serial_name)
+            if serial_data is None:
+                return None
+            serial_url, serial_name = serial_data
+            # Получение недостающей информации о сериале
+            async with session.get(url=serial_url, headers=self.headers) as response:
+                serial_page_data = await response.text()
+            last_seria_url, last_season = SerialPageParser(serial_page_data).get_serial_data()
+            # Получение информации о последней серии
+            async with session.get(url=last_seria_url, headers=self.headers) as response:
+                seria_page_data = await response.text()
+            seria_name, seria_release, seria_voices = SeriaPageParser(seria_page_data).get_seria_data()
+            last_seria = Seria(name=seria_name, url=last_seria_url, release_date=seria_release, voices=seria_voices)
+        return Serial(name=serial_name, url=serial_url, last_season=last_season, last_seria=last_seria)
+
+    async def exist(self, serial_name: str) -> bool:
+        """Проверяет, есть ли сериал с таким названием"""
+        async with aiohttp.ClientSession() as session:
+            serial_data = await self._find_serial_on_site(session, serial_name)
+        if serial_data:
+            return True
+        return False
 
     async def _find_serial_on_site(self, session: aiohttp.ClientSession, serial_name: str) -> tuple[str, str] | None:
         """Запрос на поиск сериала"""

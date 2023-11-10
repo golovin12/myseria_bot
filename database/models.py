@@ -29,6 +29,10 @@ class SerialSite(BaseModel):
     name: str = CharField(empty_allowed=False, is_pk=True)
     url: str = UrlField()
 
+    def __init__(self, name: str, url: str):
+        self.name = name
+        self.url = url
+
     @staticmethod
     def _get_redis_key(name: str) -> str:
         return f"{name}_site"
@@ -41,10 +45,6 @@ class SerialSite(BaseModel):
             return cls(name, url)
         except ValueError:
             raise ObjectNotFoundError
-
-    def __init__(self, name: str, url: str):
-        self.name = name
-        self.url = url
 
     async def save(self) -> bool:
         """
@@ -60,16 +60,13 @@ class User(BaseModel):
     user_id: int = PositiveIntegerField(is_pk=True)
     serials: UserSerials = JsonField(user_type=UserSerials)
 
-    @staticmethod
-    def _get_redis_key_by_user_id(user_id: int) -> str:
-        return f"{user_id}_serials"
+    def __init__(self, user_id: int, serials: dict | UserSerials):
+        self.user_id = user_id
+        self.serials = serials
 
-    @classmethod
-    async def _get_user_serials(cls, user_id: int) -> dict:
-        redis_key = cls._get_redis_key_by_user_id(user_id)
-        serials_str: str = await cls.get_connection().get(redis_key)
-        serials = json.loads(serials_str) if serials_str else {}  # Обрабатываем случаи, когда информации о юзере нет
-        return serials
+    @staticmethod
+    def _get_redis_key(user_id: int) -> str:
+        return f"{user_id}_serials"
 
     @classmethod
     async def get_object(cls, user_id: int) -> User:
@@ -79,9 +76,12 @@ class User(BaseModel):
         except ValueError:
             raise ObjectNotFoundError
 
-    def __init__(self, user_id: int, serials: dict | UserSerials):
-        self.user_id = user_id
-        self.serials = serials
+    @classmethod
+    async def _get_user_serials(cls, user_id: int) -> dict:
+        redis_key = cls._get_redis_key(user_id)
+        serials_str: str = await cls.get_connection().get(redis_key)
+        serials = json.loads(serials_str) if serials_str else {}  # Обрабатываем случаи, когда информации о юзере нет
+        return serials
 
     async def save(self) -> bool:
         """
@@ -89,13 +89,17 @@ class User(BaseModel):
 
         "{user_id}_serials": json.dumps({serial_name: %d.%m.%Y, ...})
         """
-        redis_key = self._get_redis_key_by_user_id(self.user_id)
+        redis_key = self._get_redis_key(self.user_id)
         return bool(await self.get_connection().set(redis_key, json.dumps(self.serials, default=dict_date_serializer)))
 
 
 class Admin(BaseModel):
     user_id: int = PositiveIntegerField(is_pk=True)
     is_admin: bool = BooleanField()
+
+    def __init__(self, user_id: int, is_admin: bool):
+        self.user_id = user_id
+        self.is_admin = is_admin
 
     @staticmethod
     def _get_redis_key() -> str:
@@ -122,10 +126,6 @@ class Admin(BaseModel):
         """Возвращает идентификаторы юзеров с правами администратора"""
         redis_key = cls._get_redis_key()
         return await cls.get_connection().smembers(redis_key)
-
-    def __init__(self, user_id, is_admin):
-        self.user_id = user_id
-        self.is_admin = is_admin
 
     async def save(self) -> bool:
         """
