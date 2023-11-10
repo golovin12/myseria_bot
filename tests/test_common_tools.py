@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from common_tools.async_connection import url_is_active
 from common_tools.async_sequence import message_per_seconds_limiter
-from common_tools.date import get_date_by_localize_date_string
+from common_tools.date import get_date_by_localize_string
 from common_tools.json_serializer import dict_date_serializer
 from common_tools.sequence import batched
 
@@ -53,7 +53,13 @@ class CommonToolsTest(TestCase):
             self.assertEqual(result, list(range(messages_count)))
 
     def test_localize_date(self):
-        self.assertEqual(get_date_by_localize_date_string('24 октября 2019'), datetime(day=24, month=10, year=2019))
+        self.assertEqual(get_date_by_localize_string('24 октября 2019'), datetime(day=24, month=10, year=2019))
+        self.assertEqual(get_date_by_localize_string('24 Октября 2019'), datetime(day=24, month=10, year=2019))
+        self.assertRaises(ValueError, get_date_by_localize_string, '24 октября 2019   .')
+        self.assertRaises(ValueError, get_date_by_localize_string, '32 октября 2019')
+        self.assertRaises(ValueError, get_date_by_localize_string, '24 месяц 2019')
+        self.assertRaises(TypeError, get_date_by_localize_string, 123)
+        self.assertRaises(TypeError, get_date_by_localize_string, None)
 
     def test_dict_date_serializer(self):
         test_dict = UserDict({'test_date': datetime(day=24, month=10, year=2019)})

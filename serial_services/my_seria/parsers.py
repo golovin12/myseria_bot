@@ -4,7 +4,7 @@ from typing import Iterator
 
 from bs4 import BeautifulSoup
 
-from common_tools.date import get_date_by_localize_date_string
+from common_tools.date import get_date_by_localize_string
 from ..errors import ParsingError
 
 SeriaInfoIterator = Iterator[tuple[str, str, str, list[str]]]
@@ -88,9 +88,9 @@ class NewSeriesPageParser(BaseParser):
         try:
             for series_block in self.soup.find_all('div', class_="episode-group"):
                 date_text = series_block.find('div', class_="episode-group-name").find("span").text
-                date = get_date_by_localize_date_string(date_text)
+                date = get_date_by_localize_string(date_text)
                 yield date, self._get_series_info(series_block)
-        except (AttributeError, ValueError, KeyError):
+        except (AttributeError, ValueError, TypeError):
             raise ParsingError('Ошибка при разборе информации о серии')
 
     def _get_series_info(self, series_block: BeautifulSoup) -> SeriaInfoIterator:

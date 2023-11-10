@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 MONTH_NAMES_RU = {
@@ -6,8 +7,14 @@ MONTH_NAMES_RU = {
 }
 
 
-def get_date_by_localize_date_string(date_string: str) -> datetime:
-    """Формирует дату из строки вида: 29 сентября 2019"""
-    day, month, year = date_string.split()
-    month_num = MONTH_NAMES_RU[month]
-    return datetime(day=int(day), month=month_num, year=int(year))
+def get_date_by_localize_string(date_string: str) -> datetime:
+    """Формирует дату из строки вида: %d %B %Y для русского языка"""
+    if not isinstance(date_string, str):
+        raise TypeError(f'date_string must be str not {type(date_string)}')
+    date_string = date_string.lower()
+    if re.fullmatch(r'\d+ [а-я]+ \d+', date_string):
+        day, month_name, year = date_string.split()
+        if month_name in MONTH_NAMES_RU:
+            month_num = MONTH_NAMES_RU[month_name]
+            return datetime(day=int(day), month=month_num, year=int(year))
+    raise ValueError('date_string does not math format %d %B %Y')
