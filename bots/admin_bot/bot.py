@@ -1,6 +1,6 @@
 from .controller import AdminController
 from .handlers import handler_classes, AdminHandler
-from base_bot import BaseBot
+from bots.base_bot import BaseBot
 
 
 class AdminBot(BaseBot):

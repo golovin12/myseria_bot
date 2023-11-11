@@ -3,7 +3,7 @@ import os
 import redis
 
 from consts import RedisDatabases
-from base_bot import BaseBot
+from bots import BaseBot
 
 
 class ProductionSettings:

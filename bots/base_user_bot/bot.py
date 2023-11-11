@@ -3,7 +3,7 @@ from typing import Type
 from .controller import UserController
 from .handlers import handler_classes, UserHandler
 from .keyboards import get_menu_commands
-from base_bot import BaseBot
+from bots.base_bot import BaseBot
 
 
 class UserBot(BaseBot):

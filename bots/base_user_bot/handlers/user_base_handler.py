@@ -2,7 +2,7 @@ from typing import Type
 
 from aiogram import Dispatcher
 
-from base_bot import BaseHandler
+from bots.base_bot import BaseHandler
 from ..controller import UserController
 
 

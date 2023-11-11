@@ -1,4 +1,6 @@
-from bots import MySeriaBot, ZetflixBot, AdminBot
+from bots.admin_bot import AdminBot
+from bots.my_seria_bot import MySeriaBot
+from bots.zetflix_bot import ZetflixBot
 from config import settings
 from consts import MySeria, Zetflix, ADMIN_KEY
 

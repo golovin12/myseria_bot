@@ -1,5 +1,3 @@
-from .admin_bot import AdminBot
-from .my_seria_bot import MySeriaBot
-from .zetflix_bot import ZetflixBot
+from .base_bot import BaseBot
 
-__all__ = ('MySeriaBot', 'ZetflixBot', 'AdminBot')
+__all__ = ('BaseBot',)
