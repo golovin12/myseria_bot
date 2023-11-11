@@ -4,7 +4,7 @@ import abc
 import itertools
 from collections import UserDict
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import AsyncIterator, Iterator
 
 
@@ -27,7 +27,12 @@ class Serial:
 
 
 class UserSerials(UserDict):
-    """Управление списком сериалов пользователя"""
+    """
+    Управление списком сериалов пользователя
+
+    Ключ - название сериала
+    Значение - дата, когда последний раз запрашивалась информация о новых сериях для сериала
+    """
 
     def __contains__(self, key: str) -> bool:
         key = key.strip().capitalize()
@@ -37,28 +42,31 @@ class UserSerials(UserDict):
         key = key.strip().capitalize()
         return super().__getitem__(key)
 
-    def __setitem__(self, key: str, value: str | datetime) -> None:
+    def __setitem__(self, key: str, value: str | datetime | date) -> None:
         key = key.strip().capitalize()
         if isinstance(value, str):
             try:
-                super().__setitem__(key, datetime.strptime(value, '%d.%m.%Y'))
+                super().__setitem__(key, datetime.strptime(value, '%d.%m.%Y').date())
                 return
             except ValueError:
                 raise ValueError('last_update_date must be stringformat %d.%m.%Y')
         elif isinstance(value, datetime):
-            super().__setitem__(key, value.replace(minute=0, hour=0, second=0, microsecond=0))
+            super().__setitem__(key, value.date())
             return
-        raise ValueError('last_update_date must be datetime object or stringformat %d.%m.%Y')
+        elif isinstance(value, date):
+            super().__setitem__(key, value)
+            return
+        raise ValueError('last_update_date must be date|datetime object or stringformat %d.%m.%Y')
 
     def actualize(self, serials: UserSerials):
         """Для сериалов, у которых запрашивались новинки обновляем дату последнего обновления на сегодняшнюю"""
         for serial_name in serials.keys():
             if serial_name in self:
-                self[serial_name] = datetime.today()
+                self[serial_name] = date.today()
 
     def add(self, key: str):
         """Добавление нового сериала"""
-        self[key] = datetime.now() - timedelta(days=7)  # Устанавливаем last_update_date с запасом
+        self[key] = date.today() - timedelta(days=7)  # Устанавливаем last_update_date с запасом
 
     def filter(self, key: str | None = None) -> UserSerials:
         """Фильтрация по ключу."""
@@ -68,7 +76,7 @@ class UserSerials(UserDict):
             return self.__class__({key: self[key]})
         return self.__class__()
 
-    def group_by_date(self) -> Iterator[tuple[datetime, set[str]]]:
+    def group_by_date(self) -> Iterator[tuple[date, set[str]]]:
         """Группировка сериалов по дате"""
         serials_by_last_update_date = sorted(self.keys(), key=lambda x: self[x], reverse=True)
         for last_date, serials in itertools.groupby(serials_by_last_update_date, key=lambda x: self[x]):

@@ -6,9 +6,9 @@ from serial_services import UserSerials
 
 class UserSerialsTest(TestCase):
     def setUp(self) -> None:
-        dt_now = datetime.now()
-        self.date_now = datetime(day=dt_now.day, month=dt_now.month, year=dt_now.year)
-        self.serials = UserSerials({'serial1': self.date_now,
+        self.dt_now = datetime.now()
+        self.date_now = self.dt_now.date()
+        self.serials = UserSerials({'serial1': self.dt_now,
                                     'serial2': self.date_now,
                                     'serial3': '19.03.2000',
                                     'serial4': self.date_now - timedelta(days=10)})
@@ -35,12 +35,13 @@ class UserSerialsTest(TestCase):
         # попытка установить ключ не в строковом формате
         self.assertRaises(AttributeError, UserSerials, {123: self.date_now})
         # попытка установить значение ключа с невалидным значением
-        for value in (None, 123, datetime.now().date(), 'string', '33.1.1999'):
+        for value in (None, 123, 'string', '33.1.1999'):
             self.assertRaises(ValueError, UserSerials, {'serial_name': value})
         # Установка значения в виде datetime или datetime.strftime('%d.%m.%Y')
-        serials1 = UserSerials({'serial_name': self.date_now})
+        serials1 = UserSerials({'serial_name': self.dt_now})
         serials2 = UserSerials({'serial_name': self.date_now.strftime('%d.%m.%Y')})
-        self.assertEqual(serials1, serials2)
+        serials3 = UserSerials({'serial_name': self.date_now})
+        self.assertTrue(serials1 == serials2 == serials3)
 
     def test_actualize(self):
         modify_serials = self.serials.copy()

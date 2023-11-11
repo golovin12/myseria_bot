@@ -1,5 +1,5 @@
-import datetime
 import re
+from datetime import date
 from typing import AsyncIterator
 
 import aiohttp
@@ -73,7 +73,7 @@ class ZetflixService(BaseSerialService):
                     async with session.get(url=seria_url, headers=self.headers) as response:
                         seria_page_data = await response.text()
                     seria_name, seria_release, seria_voices = SeriaPageParser(seria_page_data).get_seria_data()
-                    if seria_release and s_last_date > datetime.datetime.fromisoformat(seria_release):
+                    if seria_release and s_last_date > date.fromisoformat(seria_release):
                         break
                     yield Seria(name=seria_name, url=seria_url, release_date=seria_release, voices=seria_voices)
 

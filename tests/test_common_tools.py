@@ -1,7 +1,7 @@
 import asyncio
 import json
 from collections import UserDict
-from datetime import datetime
+from datetime import datetime, date
 from typing import AsyncIterator, AsyncIterable
 from unittest import TestCase
 from unittest.mock import patch
@@ -53,8 +53,8 @@ class CommonToolsTest(TestCase):
             self.assertEqual(result, list(range(messages_count)))
 
     def test_localize_date(self):
-        self.assertEqual(get_date_by_localize_string('24 октября 2019'), datetime(day=24, month=10, year=2019))
-        self.assertEqual(get_date_by_localize_string('24 Октября 2019'), datetime(day=24, month=10, year=2019))
+        self.assertEqual(get_date_by_localize_string('24 октября 2019'), date(day=24, month=10, year=2019))
+        self.assertEqual(get_date_by_localize_string('24 Октября 2019'), date(day=24, month=10, year=2019))
         self.assertRaises(ValueError, get_date_by_localize_string, '24 октября 2019   .')
         self.assertRaises(ValueError, get_date_by_localize_string, '32 октября 2019')
         self.assertRaises(ValueError, get_date_by_localize_string, '24 месяц 2019')
@@ -62,9 +62,12 @@ class CommonToolsTest(TestCase):
         self.assertRaises(TypeError, get_date_by_localize_string, None)
 
     def test_dict_date_serializer(self):
-        test_dict = UserDict({'test_date': datetime(day=24, month=10, year=2019)})
-        result = json.dumps(test_dict, default=dict_date_serializer)
-        self.assertEqual(result, '{"test_date": "24.10.2019"}')
+        test_dict1 = UserDict({'test_date': datetime(day=24, month=10, year=2019)})
+        test_dict2 = UserDict({'test_date': date(day=24, month=10, year=2019)})
+        result1 = json.dumps(test_dict1, default=dict_date_serializer)
+        result2 = json.dumps(test_dict2, default=dict_date_serializer)
+        self.assertEqual(result1, '{"test_date": "24.10.2019"}')
+        self.assertEqual(result2, '{"test_date": "24.10.2019"}')
 
     def test_batched(self):
         self.assertEqual(tuple(batched('AABBCC', 2)), (('A', 'A'), ('B', 'B'), ('C', 'C')))

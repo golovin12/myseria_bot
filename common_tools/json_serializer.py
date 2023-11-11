@@ -1,5 +1,5 @@
 from collections import UserDict
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any
 
 
@@ -7,11 +7,11 @@ def dict_date_serializer(obj: Any) -> Any:
     """
     JSON serializer
 
-    datetime -> "%d.%m.%Y"
+    datetime|date -> "%d.%m.%Y"
 
     UserDict -> dict
     """
-    if isinstance(obj, datetime):
+    if isinstance(obj, datetime | date):
         return obj.strftime("%d.%m.%Y")
     elif isinstance(obj, UserDict):
         return obj.data

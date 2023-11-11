@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import date
 
 MONTH_NAMES_RU = {
     "января": 1, "февраля": 2, "марта": 3, "апреля": 4, "мая": 5, "июня": 6, "июля": 7, "августа": 8, "сентября": 9,
@@ -7,7 +7,7 @@ MONTH_NAMES_RU = {
 }
 
 
-def get_date_by_localize_string(date_string: str) -> datetime:
+def get_date_by_localize_string(date_string: str) -> date:
     """Формирует дату из строки вида: %d %B %Y для русского языка"""
     if not isinstance(date_string, str):
         raise TypeError(f'date_string must be str not {type(date_string)}')
@@ -16,5 +16,5 @@ def get_date_by_localize_string(date_string: str) -> datetime:
         day, month_name, year = date_string.split()
         if month_name in MONTH_NAMES_RU:
             month_num = MONTH_NAMES_RU[month_name]
-            return datetime(day=int(day), month=month_num, year=int(year))
+            return date(day=int(day), month=month_num, year=int(year))
     raise ValueError('date_string does not math format %d %B %Y')

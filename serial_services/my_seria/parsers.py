@@ -1,5 +1,5 @@
 import re
-from datetime import datetime
+from datetime import date
 from typing import Iterator
 
 from bs4 import BeautifulSoup
@@ -83,13 +83,13 @@ class SeriaPageParser(BaseParser):
 class NewSeriesPageParser(BaseParser):
     """Парсер страницы новых серий"""
 
-    def get_series_group_by_date(self) -> Iterator[tuple[datetime, SeriaInfoIterator]]:
+    def get_series_group_by_date(self) -> Iterator[tuple[date, SeriaInfoIterator]]:
         """Получить дату из блока с сериями"""
         try:
             for series_block in self.soup.find_all('div', class_="episode-group"):
-                date_text = series_block.find('div', class_="episode-group-name").find("span").text
-                date = get_date_by_localize_string(date_text)
-                yield date, self._get_series_info(series_block)
+                release_date_text = series_block.find('div', class_="episode-group-name").find("span").text
+                release_date = get_date_by_localize_string(release_date_text)
+                yield release_date, self._get_series_info(series_block)
         except (AttributeError, ValueError, TypeError):
             raise ParsingError('Ошибка при разборе информации о серии')
 

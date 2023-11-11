@@ -160,7 +160,8 @@ class DatabaseModelsTest(DBTestCase):
     def test_user(self):
         warnings.simplefilter("ignore", ResourceWarning)
         datetime_now = datetime.now()
-        user = User(1, {'serial': datetime_now.strftime("%d.%m.%Y")})
+        date_now = datetime_now.date()
+        user = User(1, {'serial': datetime_now.strftime("%d.%m.%Y"), 'serial1': date_now})
         # попытка инициализации объекта с невалидными значениями
         self.assertRaises(ValueError, User, 1, None)
         self.assertRaises(ValueError, User, None, {})
@@ -176,17 +177,15 @@ class DatabaseModelsTest(DBTestCase):
         self.assertNotEqual(default_obj.serials, user.serials)
         # получение из бд объекта, который был сохранён
         asyncio.run(user.save())
-        obj_from_bd = asyncio.run(User.get_object(user.user_id))
-        self.assertEqual(obj_from_bd.user_id, user.user_id)
-        self.assertEqual(obj_from_bd.serials, user.serials)
+        user_from_bd = asyncio.run(User.get_object(user.user_id))
+        self.assertEqual(user_from_bd.user_id, user.user_id)
+        self.assertEqual(user_from_bd.serials, user.serials)
         # изменение значений
-        self.assertRaises(AttributeError, setattr, obj_from_bd, 'user_id', 2)
-        obj_from_bd.serials = {'serial2': datetime_now}
-        asyncio.run(obj_from_bd.save())
-        obj_from_bd = asyncio.run(User.get_object(user.user_id))
-        self.assertEqual(obj_from_bd.serials, {'Serial2': datetime(day=datetime_now.day,
-                                                                   month=datetime_now.month,
-                                                                   year=datetime_now.year)})
+        self.assertRaises(AttributeError, setattr, user_from_bd, 'user_id', 2)
+        user_from_bd.serials = {'serial2': datetime_now}
+        asyncio.run(user_from_bd.save())
+        user_from_bd = asyncio.run(User.get_object(user.user_id))
+        self.assertEqual(user_from_bd.serials, {'Serial2': date_now})
 
     def test_admin(self):
         warnings.simplefilter("ignore", ResourceWarning)
