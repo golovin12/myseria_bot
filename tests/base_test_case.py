@@ -7,12 +7,13 @@ from config import settings
 
 class DBTestCase(TestCase):
     def setUp(self) -> None:
+        warnings.simplefilter("ignore", ResourceWarning)
         if settings.ENV_NAME != "TEST":
             raise Exception("Тесты, в которых есть работа с бд, "
                             "можно запускать только с переменной окружения ENV_NAME=TEST")
 
     def tearDown(self) -> None:
-        warnings.simplefilter("ignore", ResourceWarning)
         if settings.ENV_NAME == "TEST":
             # очищаем бд после работы
             asyncio.run(settings.aioredis.flushdb())
+        warnings.simplefilter("default", ResourceWarning)

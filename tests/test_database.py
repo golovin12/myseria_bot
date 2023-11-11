@@ -1,5 +1,4 @@
 import asyncio
-import warnings
 from collections import UserDict
 from datetime import datetime
 from unittest import TestCase
@@ -133,7 +132,6 @@ class DatabaseFieldsTest(TestCase):
 
 class DatabaseModelsTest(DBTestCase):
     def test_serials_site(self):
-        warnings.simplefilter("ignore", ResourceWarning)
         serial_site = SerialSite('name', 'https://test')
         # попытка инициализации объекта с невалидными значениями
         self.assertRaises(ValueError, SerialSite, '', '')
@@ -158,7 +156,6 @@ class DatabaseModelsTest(DBTestCase):
         self.assertEqual(obj_from_bd.url, 'https://test2')
 
     def test_user(self):
-        warnings.simplefilter("ignore", ResourceWarning)
         datetime_now = datetime.now()
         date_now = datetime_now.date()
         user = User(1, {'serial': datetime_now.strftime("%d.%m.%Y"), 'serial1': date_now})
@@ -188,7 +185,6 @@ class DatabaseModelsTest(DBTestCase):
         self.assertEqual(user_from_bd.serials, {'Serial2': date_now})
 
     def test_admin(self):
-        warnings.simplefilter("ignore", ResourceWarning)
         admin = Admin(1, True)
         # попытка инициализации объекта с невалидными значениями
         self.assertRaises(ValueError, Admin, 1, None)

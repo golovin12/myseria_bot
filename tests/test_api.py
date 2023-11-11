@@ -1,5 +1,4 @@
 import asyncio
-import warnings
 from unittest.mock import AsyncMock
 
 from fastapi import FastAPI
@@ -60,11 +59,7 @@ class BotApiTest(DBTestCase):
                          headers=self.valid_headers)
         self.assertEqual(self.bot_mock.process_new_updates.call_count, 0)
         # запрос от админа
-        self._create_admin()
+        asyncio.run(Admin(settings.ADMIN_ID, is_admin=True).save())  # создание админа
         self.client.post(f'/bot/{ADMIN_KEY}', json={'message': {'from': {'id': settings.ADMIN_ID}}},
                          headers=self.valid_headers)
         self.assertEqual(self.bot_mock.process_new_updates.call_count, 1)
-
-    def _create_admin(self):
-        warnings.simplefilter("ignore", ResourceWarning)
-        asyncio.run(Admin(settings.ADMIN_ID, is_admin=True).save())

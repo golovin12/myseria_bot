@@ -1,5 +1,4 @@
 import asyncio
-import warnings
 from unittest.mock import patch
 
 from bots.admin_bot.controller import AdminController
@@ -11,7 +10,6 @@ from .base_test_case import DBTestCase
 
 class AdminControllerTest(DBTestCase):
     def test_create_admin(self):
-        warnings.simplefilter("ignore", ResourceWarning)
         admin_id = 2
         admin = asyncio.run(Admin.get_object(admin_id))
         self.assertFalse(admin.is_admin)
@@ -20,7 +18,6 @@ class AdminControllerTest(DBTestCase):
         self.assertTrue(admin.is_admin)
 
     def test_delete_admin(self):
-        warnings.simplefilter("ignore", ResourceWarning)
         admin_id = 2
         # попытка удалить несуществующего админа
         asyncio.run(AdminController(3).delete_admin(admin_id))
@@ -38,14 +35,12 @@ class AdminControllerTest(DBTestCase):
         self.assertFalse(admin.is_admin)
 
     def test_get_all_admins(self):
-        warnings.simplefilter("ignore", ResourceWarning)
         self.assertEqual(asyncio.run(AdminController(3).get_all_admins()), '')
         asyncio.run(Admin(2, True).save())
         asyncio.run(Admin(3, True).save())
         self.assertEqual(set(asyncio.run(AdminController(3).get_all_admins()).split('\n')), {'2', '3'})
 
     def test_update_my_seria_url(self):
-        warnings.simplefilter("ignore", ResourceWarning)
         with patch('bots.admin_bot.controller.url_is_active') as mock_url_is_active:
             mock_url_is_active.return_value = True
             self.assertRaises(ObjectNotFoundError, asyncio.run, SerialSite.get_object(MySeria.KEY))
@@ -64,7 +59,6 @@ class AdminControllerTest(DBTestCase):
             self.assertEqual(my_seria_site.url, new_url)
 
     def test_update_zetflix_url(self):
-        warnings.simplefilter("ignore", ResourceWarning)
         self.assertRaises(ObjectNotFoundError, asyncio.run, SerialSite.get_object(Zetflix.KEY))
         # Попытка сохранить невалидный url
         asyncio.run(AdminController(3).force_update_zetflix_url('new_url'))
