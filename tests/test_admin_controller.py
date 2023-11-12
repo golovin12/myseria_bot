@@ -18,10 +18,10 @@ class AdminControllerTest(DBTestCase):
         self.assertTrue(admin.is_admin)
 
     def test_delete_admin(self):
-        admin_id = 2
         # попытка удалить несуществующего админа
-        asyncio.run(AdminController(3).delete_admin(admin_id))
+        asyncio.run(AdminController(3).delete_admin(999))
         # создание админа
+        admin_id = 2
         asyncio.run(Admin(admin_id, True).save())
         admin = asyncio.run(Admin.get_object(admin_id))
         self.assertTrue(admin.is_admin)

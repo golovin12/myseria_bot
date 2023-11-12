@@ -34,6 +34,12 @@ class UserController(abc.ABC):
             return await user.save()
         return False
 
+    async def reboot(self) -> bool:
+        """Очистить список сериалов пользователя"""
+        user = await self.get_user()
+        user.serials = {}
+        return await user.save()
+
     async def get_user_serials(self) -> list[str]:
         """Получить список отслеживаемых сериалов"""
         user = await self.get_user()
@@ -66,9 +72,3 @@ class UserController(abc.ABC):
         await user.save()
         if not is_have_new_series:
             yield 'Новые серии не найдены.'
-
-    async def reboot(self) -> bool:
-        """Очистить список сериалов пользователя"""
-        user = await self.get_user()
-        user.serials = {}
-        return await user.save()

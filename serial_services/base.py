@@ -58,6 +58,10 @@ class UserSerials(UserDict):
             return
         raise ValueError('last_update_date must be date|datetime object or stringformat %d.%m.%Y')
 
+    def __delitem__(self, key: str):
+        key = key.strip().capitalize()
+        return super().__delitem__(key)
+
     def actualize(self, serials: UserSerials):
         """Для сериалов, у которых запрашивались новинки обновляем дату последнего обновления на сегодняшнюю"""
         for serial_name in serials.keys():
