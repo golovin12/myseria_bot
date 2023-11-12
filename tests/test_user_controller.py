@@ -88,6 +88,7 @@ class UserControllerTest(DBTestCase):
         async def get_series(serials):
             for serial_name in serials:
                 yield Seria(serial_name, '', '', [])
+                yield Seria(serial_name, '', '', [])
 
         async def collect(ait: AsyncIterable) -> list:
             """Сборка сообщений в список"""
@@ -98,12 +99,9 @@ class UserControllerTest(DBTestCase):
         for user_id, serial_filter in ((999, None), (999, 'serial1'), (self.user_id, 'serial4')):
             result = asyncio.run(collect(SiteUserController(user_id).get_new_series(serial_filter)))
             self.assertEqual(len(result), 1)
-            self.assertEqual(result[0].count('\n'), 0)
         # получение информации о новых сериях юзера - для одного сериала
         result = asyncio.run(collect(SiteUserController(self.user_id).get_new_series('SERIAL1')))
-        self.assertEqual(len(result), 1)
-        self.assertLess(0, result[0].count('\n'))
+        self.assertEqual(len(result), 2)
         # получение информации о всех новых сериях юзера
         result = asyncio.run(collect(SiteUserController(self.user_id).get_new_series()))
-        self.assertEqual(len(result), len(self.serials))
-        self.assertLess(0, result[0].count('\n'))
+        self.assertEqual(len(result), len(self.serials) * 2)
