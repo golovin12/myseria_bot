@@ -54,8 +54,16 @@ class ZetflixService(BaseSerialService):
 
     async def get_host(self) -> str:
         """Получение адреса сайта из бд"""
-        my_seria_site = await SerialSite.get_object(self.serial_site_key)
-        return my_seria_site.url
+        zetflix_site = await SerialSite.get_object(self.serial_site_key)
+        return zetflix_site.url
+    
+    async def get_actual_url(self) -> str:
+        """Получить актуальный адрес сайта"""
+        host = await self.get_host()
+        async with aiohttp.request("GET", host, headers=self.headers) as response:
+            if response.status == 200:
+                return str(response.url)
+        return host
 
     async def get_new_series(self, serials: UserSerials) -> AsyncIterator[Seria]:
         """Получить информацию о новых сериях"""

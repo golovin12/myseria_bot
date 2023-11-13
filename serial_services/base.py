@@ -104,6 +104,10 @@ class BaseSerialService(abc.ABC):
         """Получение адреса сайта из бд"""
         ...
 
+    async def get_actual_url(self) -> str:
+        """Получить актуальный адрес сайта"""
+        return await self.get_host()
+
     @abc.abstractmethod
     async def exist(self, serial_name: str) -> bool:
         """Проверить, есть ли сериал с таким названием"""

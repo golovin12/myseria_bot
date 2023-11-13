@@ -9,11 +9,12 @@ from .command_new_series import CommandNewSeries
 from .command_reboot import CommandReboot
 from .command_serial_info import CommandSerialInfo
 from .command_start import CommandStart
+from .command_actual_url import CommandActualUrl
 from .paginator import Paginator
 
 handler_classes: tuple[Type[UserHandler], ...] = (
     CommandAddSerial, CommandCancel, CommandDeleteSerial, CommandHelp, CommandNewSeries, CommandReboot,
-    CommandSerialInfo, CommandStart, Paginator
+    CommandSerialInfo, CommandStart, CommandActualUrl, Paginator
 )
 
 __all__ = ('handler_classes', 'UserHandler')

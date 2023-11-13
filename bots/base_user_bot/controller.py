@@ -72,3 +72,7 @@ class UserController(abc.ABC):
         await user.save()
         if not is_have_new_series:
             yield 'Новые серии не найдены.'
+
+    async def get_actual_url(self) -> str:
+        """Получить актуальный адрес сайта"""
+        return await self.serial_service.get_actual_url()

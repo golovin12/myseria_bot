@@ -105,3 +105,7 @@ class UserControllerTest(DBMockTestCase):
         # получение информации о всех новых сериях юзера
         result = asyncio.run(collect(SiteUserController(self.user_id).get_new_series()))
         self.assertEqual(len(result), len(self.serials) * 2)
+
+    def test_get_actual_url(self):
+        serial_service_mock.get_actual_url.return_value = "https://test_url.com"
+        self.assertEqual(asyncio.run(SiteUserController(self.user_id).get_actual_url()), "https://test_url.com")

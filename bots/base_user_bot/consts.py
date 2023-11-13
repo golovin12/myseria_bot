@@ -2,14 +2,15 @@ PAGINATION_SERIALS_PREFIX = "#page-serials:"
 
 
 class ControlCommand:
-    ADD_SERIAL = "add_serial"
-    CANCEL = "cancel"
-    DELETE_SERIAL = "delete_serial"
-    HELP = "help"
-    SERIAL_INFO = "serial_info"
-    REBOOT = "reboot"
-    NEW_SERIES = "new_series"
     START = "start"
+    HELP = "help"
+    ADD_SERIAL = "add_serial"
+    DELETE_SERIAL = "delete_serial"
+    NEW_SERIES = "get_new_series"
+    SERIAL_INFO = "get_serial_info"
+    CANCEL = "cancel"
+    REBOOT = "reboot"
+    ACTUAL_URL = "get_actual_url"
 
     choices = (
         (START, "Приветствие"),
@@ -20,6 +21,7 @@ class ControlCommand:
         (SERIAL_INFO, "Получить информацию об отслеживаемых сериалах"),
         (CANCEL, "Отменить команду"),
         (REBOOT, "Очистить список отслеживаемых сериалов"),
+        (ACTUAL_URL, "Получить актуальный адрес сайта"),
     )
 
     all_commands = "\n".join(f"/{command} - {name}" for command, name in choices)
