@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, Mock
 from bots.base_user_bot.controller import UserController
 from database.models import User
 from serial_services import UserSerials, Serial, Seria
-from .base_test_case import DBTestCase
+from .base import DBMockTestCase
 
 serial_service_mock = AsyncMock()
 
@@ -15,7 +15,7 @@ class SiteUserController(UserController):
     serial_service_class = Mock(return_value=serial_service_mock)
 
 
-class UserControllerTest(DBTestCase):
+class UserControllerTest(DBMockTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user_id = 2

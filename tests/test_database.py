@@ -1,12 +1,11 @@
 import asyncio
 from collections import UserDict
 from datetime import datetime
-from unittest import TestCase
 
 from database import ObjectNotFoundError
 from database.fields import ValidateField, CharField, UrlField, PositiveIntegerField, BooleanField, JsonField
 from database.models import SerialSite, User, Admin
-from .base_test_case import DBTestCase
+from .base import TestCase, DBMockTestCase
 
 
 class MyBaseClass:
@@ -130,7 +129,7 @@ class DatabaseFieldsTest(TestCase):
         self.assertRaises(ValueError, test_instance.set_field_value, test_instance)
 
 
-class DatabaseModelsTest(DBTestCase):
+class DatabaseModelsTest(DBMockTestCase):
     def test_serials_site(self):
         serial_site = SerialSite('name', 'https://test')
         # попытка инициализации объекта с невалидными значениями

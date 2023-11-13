@@ -8,10 +8,10 @@ from api import bot_router
 from config import settings
 from consts import ADMIN_KEY, MySeria, Zetflix
 from database.models import Admin
-from .base_test_case import DBTestCase
+from .base import DBMockTestCase
 
 
-class BotApiTest(DBTestCase):
+class BotApiTest(DBMockTestCase):
 
     def setUp(self) -> None:
         super().setUp()

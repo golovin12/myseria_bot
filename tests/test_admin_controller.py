@@ -5,10 +5,10 @@ from bots.admin_bot.controller import AdminController
 from consts import MySeria, Zetflix
 from database import ObjectNotFoundError
 from database.models import Admin, SerialSite
-from .base_test_case import DBTestCase
+from .base import DBMockTestCase
 
 
-class AdminControllerTest(DBTestCase):
+class AdminControllerTest(DBMockTestCase):
     def test_create_admin(self):
         admin_id = 2
         admin = asyncio.run(Admin.get_object(admin_id))

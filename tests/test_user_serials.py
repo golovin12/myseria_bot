@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
-from unittest import TestCase
 
 from serial_services import UserSerials
+from .base import TestCase
 
 
 class UserSerialsTest(TestCase):

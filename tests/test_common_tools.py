@@ -3,7 +3,6 @@ import json
 from collections import UserDict
 from datetime import datetime, date
 from typing import AsyncIterator, AsyncIterable
-from unittest import TestCase
 from unittest.mock import patch
 
 from common_tools.async_connection import url_is_active
@@ -11,6 +10,7 @@ from common_tools.async_sequence import message_per_seconds_limiter
 from common_tools.date import get_date_by_localize_string
 from common_tools.json_serializer import dict_date_serializer
 from common_tools.sequence import batched
+from .base import TestCase
 
 
 class CommonToolsTest(TestCase):
