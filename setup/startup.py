@@ -5,11 +5,7 @@ from database.models import Admin
 from serial_services.my_seria import MySeriaService
 from serial_services.zetflix import ZetflixService
 
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-logger.addHandler(console)
 
 
 async def startup() -> None:

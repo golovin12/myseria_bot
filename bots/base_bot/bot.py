@@ -47,12 +47,13 @@ class BaseBot(abc.ABC):
             return await handler(event, data)
         except (ObjectNotFoundError, ParsingError) as e:
             logger.exception(e)
-            print(f'error event: {event}')
             await self.bot.send_message(data['event_from_user'].id, f'Произошла ошибка, попробуйте позже. {e}')
         except AiogramError as e:
             logger.exception(e)
-            print(f'error event: {event}')
             await self.bot.send_message(data['event_from_user'].id, 'Не удалось обработать запрос.')
+        except BaseException as e:
+            logger.exception(e)
+            await self.bot.send_message(data['event_from_user'].id, 'На сервере произошла ошибка.')
 
     def register_handlers_first(self):
         for handler in self.handlers:
