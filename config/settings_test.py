@@ -25,7 +25,7 @@ class TestSettings:
 
         self.SKIP_UPDATES = True
 
-        self.VK_ACCESS_TOKEN = os.getenv('VK_ACCESS_TOKEN')
+        self.VK_ACCESS_TOKEN = 'vk_token'
 
         self.USE_NGROK = False
 

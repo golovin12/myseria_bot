@@ -1,5 +1,5 @@
 from .init_bots import init_bots
-from .log import configure_logging
+from .logging_config import configure_logging
 from .shutdown import shutdown
 from .startup import startup
 

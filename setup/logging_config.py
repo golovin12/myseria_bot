@@ -1,3 +1,4 @@
+import logging
 import logging.config
 
 LOGGING = {
@@ -28,6 +29,17 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'filename': 'py_log.log',
         },
+        'admin_sender': {
+            'level': 'INFO',
+            'formatter': 'verbose',
+            'class': 'setup.logging_config.AdminHandler',
+        },
+    },
+    'loggers': {
+        "admin": {
+            "handlers": ["admin_sender"],
+            "level": "INFO",
+        },
     },
     "root": {
         "handlers": ["console", "file"],
@@ -38,3 +50,9 @@ LOGGING = {
 
 def configure_logging():
     logging.config.dictConfig(LOGGING)
+
+
+class AdminHandler(logging.Handler):
+    def emit(self, record: logging.LogRecord):
+        ...
+        # todo отправлять сообщения админу через бота
