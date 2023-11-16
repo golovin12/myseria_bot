@@ -1,16 +1,13 @@
-import asyncio
 import re
 from typing import AsyncIterator
 
 import aiohttp
 
 from common_tools.async_connection import url_is_active
-from consts import MAX_NEW_SERIES_CONNECTIONS, MySeria, LIMIT_SEARCH_DEPTH
+from consts import MySeria, LIMIT_SEARCH_DEPTH
 from database.models import SerialSite
 from serial_services import BaseSerialService, Serial, Seria, UserSerials
 from .parsers import SearchPageParser, SerialPageParser, SeriaPageParser, NewSeriesPageParser
-
-semaphore_for_serials_news = asyncio.Semaphore(MAX_NEW_SERIES_CONNECTIONS)
 
 
 class MySeriaService(BaseSerialService):
@@ -64,25 +61,24 @@ class MySeriaService(BaseSerialService):
             async with aiohttp.ClientSession() as session:
                 page = 1
                 while page < LIMIT_SEARCH_DEPTH:
-                    async with semaphore_for_serials_news:
-                        page_url = f'{host}/series/page/{page}/'
-                        async with session.get(url=page_url, headers=self.headers) as response:
-                            page_data = await response.text()
-                        new_series_by_date_iterator = NewSeriesPageParser(page_data).get_series_group_by_date()
-                        for series_date, series_by_date in new_series_by_date_iterator:
-                            if last_date > series_date:
-                                # Удаляем сериалы, которые были привязаны к обработанной дате
-                                tracked_serials -= last_date_serials
-                                last_date, last_date_serials = next(serials_by_last_date)
-                            for seria_data in series_by_date:
-                                s_name, s_number, s_url, s_voices = seria_data
-                                if s_name.capitalize() in tracked_serials:
-                                    yield Seria(
-                                        name=f'{s_name} {s_number}',
-                                        url=s_url,
-                                        release_date=series_date.strftime("%d.%m.%Y"),
-                                        voices=s_voices,
-                                    )
+                    page_url = f'{host}/series/page/{page}/'
+                    async with session.get(url=page_url, headers=self.headers) as response:
+                        page_data = await response.text()
+                    new_series_by_date_iterator = NewSeriesPageParser(page_data).get_series_group_by_date()
+                    for series_date, series_by_date in new_series_by_date_iterator:
+                        if last_date > series_date:
+                            # Удаляем сериалы, которые были привязаны к обработанной дате
+                            tracked_serials -= last_date_serials
+                            last_date, last_date_serials = next(serials_by_last_date)
+                        for seria_data in series_by_date:
+                            s_name, s_number, s_url, s_voices = seria_data
+                            if s_name.capitalize() in tracked_serials:
+                                yield Seria(
+                                    name=f'{s_name} {s_number}',
+                                    url=s_url,
+                                    release_date=series_date.strftime("%d.%m.%Y"),
+                                    voices=s_voices,
+                                )
                     page += 1
         except StopIteration:
             pass

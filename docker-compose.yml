@@ -1,19 +1,64 @@
 version: '3.1'
 
 services:
+  rabbitmq:
+    image: rabbitmq:3.12.8-management
+    hostname: rabbitmq
+    command: rabbitmq-server
+    restart: always
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+      - ./management/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./management/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    expose:
+      - 5672
+    networks:
+      - network
+    ports:
+      - "15672:15672"
 
   redis:
     image: redis:alpine
-    command:
-      - redis-server
-    restart: on-failure
-    ports:
-      - "6379:6379"
+    command: redis-server --save 20 1 --maxmemory 512mb --maxmemory-policy allkeys-lru
+    restart: always
+    volumes:
+      - redis:/var/lib/redis
+    expose:
+      - 6379
+    networks:
+      - network
+
   bot:
     build: .
     command: sh -c "python -m run"
     restart: always
-    ports:
-      - "8000:8000"
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      REDIS_HOST: redis
     depends_on:
       - redis
+      - rabbitmq
+    networks:
+      - network
+    ports:
+      - "8000:8000"
+
+  worker:
+      build: .
+      command: sh -c "python -m management.run_dramatiq"
+      restart: always
+      environment:
+        RABBITMQ_HOST: rabbitmq
+        REDIS_HOST: redis
+      depends_on:
+        - redis
+        - rabbitmq
+      networks:
+        - network
+
+volumes:
+  redis:
+  rabbitmq:
+
+networks:
+  network:

@@ -1,6 +1,11 @@
 aiogram==3.1.1
 aiohttp==3.8.6
 beautifulsoup4==4.12.2
+dramatiq==1.15.0                        # dependencies instead 'dramatiq[rabbitmq, watch]'
+    prometheus-client==0.18.0
+    pika==1.3.2
+    watchdog==3.0.0
+    watchdog-gevent==0.1.1
 fastapi==0.103.2
 flake8==6.1.0
 httpx==0.25.1

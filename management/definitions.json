@@ -1,0 +1,55 @@
+{
+ "rabbit_version": "3.12.8",
+ "users": [
+  {
+   "name": "rmq_admin",
+   "password_hash": "BvOyITYGImOueMoXhCV7a+kCj1hHG3unT8yALuHjemopfPDg",
+   "hashing_algorithm": "rabbit_password_hashing_sha256",
+   "tags": "administrator"
+  }
+ ],
+ "vhosts": [
+  {
+   "name": "/"
+  }
+ ],
+ "permissions": [
+  {
+   "user": "rmq_admin",
+   "vhost": "/",
+   "configure": ".*",
+   "write": ".*",
+   "read": ".*"
+  }
+ ],
+ "parameters": [],
+ "queues": [{
+        "name": "admin",
+        "vhost": "/",
+        "durable": true,
+        "auto_delete": false,
+        "arguments": {
+        }
+      }],
+ "exchanges":[
+    {
+      "name":"e.user.created",
+      "vhost":"/",
+      "type":"topic",
+      "durable":true,
+      "auto_delete":false,
+      "internal":false,
+      "arguments":{}
+    }
+  ],
+  "bindings":[
+    {
+      "source":"e.user.created",
+      "vhost":"/",
+      "destination":"q.user.created",
+      "destination_type":"queue",
+      "routing_key":"user.created",
+      "arguments":{}
+    }
+  ]
+}

@@ -10,6 +10,7 @@ class TestSettings:
     def __init__(self):
         self.ENV_NAME = 'TEST'
         self.REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+        self.RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
         # хранилище для database.models
         self._aioredis = None
 
@@ -39,3 +40,6 @@ class TestSettings:
         if self._aioredis is None or self._aioredis.connection is None:
             self._aioredis = redis.asyncio.Redis(host=self.REDIS_HOST, db=RedisDatabases.test, decode_responses=True)
         return self._aioredis
+
+    def post_init(self):
+        pass

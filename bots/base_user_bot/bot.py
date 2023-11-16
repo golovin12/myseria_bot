@@ -21,5 +21,5 @@ class UserBot(BaseBot):
         admin_logger.info(f'Бот {self.name} запущен.')
 
     async def on_shutdown(self):
-        await super().on_shutdown()
         admin_logger.info(f'Бот {self.name} остановлен.')
+        await super().on_shutdown()

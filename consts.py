@@ -1,6 +1,5 @@
 ADMIN_KEY = "admin"
 
-MAX_NEW_SERIES_CONNECTIONS = 5  # количество юзеров, которые могут одновременно запрашивать инфо о сериалах
 LIMIT_SEARCH_DEPTH = 120
 
 

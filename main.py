@@ -1,9 +1,8 @@
 from fastapi import FastAPI
 
 import api
-from setup import init_bots, startup, shutdown, configure_logging
+from setup import init_bots, startup, shutdown
 
-configure_logging()
 init_bots()
 
 app = FastAPI()

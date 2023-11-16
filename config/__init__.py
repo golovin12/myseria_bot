@@ -10,5 +10,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(f'{BASE_DIR}/.env')
 
 settings = ProductionSettings() if os.getenv("ENV_NAME") != "TEST" else TestSettings()
+settings.post_init()
 
 __all__ = ('settings',)

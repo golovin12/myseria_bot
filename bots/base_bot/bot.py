@@ -14,10 +14,9 @@ from .middlewares import ErrorMiddleware
 
 class BaseBot(abc.ABC):
 
-    def __init__(self, name, bot_token: str, skip_updates: bool, key: str, redis_host: str | None = None):
+    def __init__(self, name: str, bot_token: str, skip_updates: bool, redis_host: str | None = None):
         self.name = name
         self.skip_updates = skip_updates
-        self.key = key
         self.bot = Bot(bot_token, parse_mode=ParseMode.HTML)
         self.dp = Dispatcher(storage=self._get_fsm_storage(redis_host))
         self._register_middlewares()
@@ -28,7 +27,7 @@ class BaseBot(abc.ABC):
     def _get_fsm_storage(self, redis_host: str | None) -> RedisStorage | None:
         if redis_host:
             aioredis = redis.asyncio.Redis(host=redis_host, db=RedisDatabases.fsm_storage, decode_responses=True)
-            return RedisStorage(aioredis, key_builder=DefaultKeyBuilder(prefix=f"fsm_{self.key}"))
+            return RedisStorage(aioredis, key_builder=DefaultKeyBuilder(prefix=f"fsm_{self.name}"))
 
     @abc.abstractmethod
     def _get_handlers(self) -> list[BaseHandler]:
@@ -50,7 +49,7 @@ class BaseBot(abc.ABC):
             handler.register_second()
 
     async def on_startapp(self, url: str, secret_token: str):
-        await self.bot.set_webhook(f"{url}/bot/{self.key}", secret_token=secret_token,
+        await self.bot.set_webhook(f"{url}/bot/{self.name}", secret_token=secret_token,
                                    drop_pending_updates=self.skip_updates)
 
     async def on_shutdown(self):
