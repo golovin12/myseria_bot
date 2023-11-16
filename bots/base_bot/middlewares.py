@@ -11,7 +11,7 @@ from serial_services import ParsingError
 admin_logger = logging.getLogger('admin')
 
 
-class ErrorMiddleware(BaseMiddleware):
+class ErrorsMiddleware(BaseMiddleware):
     def __init__(self, bot: Bot):
         super().__init__()
         self.bot = bot

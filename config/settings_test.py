@@ -18,7 +18,7 @@ class TestSettings:
         self.MY_SERIA_BOT_TOKEN = 'my_seria:bot_token'
         self.ZETFLIX_BOT_TOKEN = 'zetflix:bot_token'
 
-        self.user_bots: dict[str, BaseBot] = {}
+        self._user_bots: dict[str, BaseBot] = {}
 
         self.ADMIN_ID = 111
 
@@ -33,6 +33,10 @@ class TestSettings:
         self.HOST = '127.0.0.1'
         self.PORT = 8000
         self.BASE_URL = f"https://{self.HOST}"
+
+    @property
+    def user_bots(self):
+        return self._user_bots
 
     @property
     def aioredis(self):

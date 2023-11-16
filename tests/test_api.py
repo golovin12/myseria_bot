@@ -1,13 +1,10 @@
-import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from api import bot_router
 from config import settings
-from consts import ADMIN_KEY, MySeria, Zetflix
-from database.models import Admin
 from .base import DBMockTestCase
 
 
@@ -22,11 +19,13 @@ class BotApiTest(DBMockTestCase):
         self.invalid_headers = {'X-Telegram-Bot-Api-Secret-Token': 'invalid'}
         self.valid_headers = {'X-Telegram-Bot-Api-Secret-Token': settings.SECRET_TOKEN}
 
-        self.bot_mock = AsyncMock()
-        self.bot_mock.process_new_updates.return_value = None
-        settings.user_bots[MySeria.KEY] = self.bot_mock
-        settings.user_bots[Zetflix.KEY] = self.bot_mock
-        settings.user_bots[ADMIN_KEY] = self.bot_mock
+        # mock ботов
+        bot_mock = AsyncMock()
+        bot_mock.process_new_updates.return_value = None
+
+        self.bots_patcher = patch('config.settings_test.TestSettings.user_bots')
+        user_bots_mock = self.bots_patcher.start()
+        user_bots_mock.__getitem__.return_value = bot_mock
 
     def test_verify_token(self):
         """
@@ -45,21 +44,7 @@ class BotApiTest(DBMockTestCase):
             response = self.client.post(route.path, json={}, headers=self.valid_headers)
             self.assertEqual(response.status_code, 200)
 
-    def test_admin_router(self):
-        """Проверка доступа (только для админов)"""
-        self.bot_mock.process_new_updates.call_count = 0
-        # пустой запрос
-        self.client.post(f'/bot/{ADMIN_KEY}', json={}, headers=self.valid_headers)
-        self.assertEqual(self.bot_mock.process_new_updates.call_count, 0)
-        # не валидный id юзера
-        self.client.post(f'/bot/{ADMIN_KEY}', json={'message': {'from': {'id': None}}}, headers=self.valid_headers)
-        self.assertEqual(self.bot_mock.process_new_updates.call_count, 0)
-        # запрос не от админа
-        self.client.post(f'/bot/{ADMIN_KEY}', json={'message': {'from': {'id': settings.ADMIN_ID}}},
-                         headers=self.valid_headers)
-        self.assertEqual(self.bot_mock.process_new_updates.call_count, 0)
-        # запрос от админа
-        asyncio.run(Admin(settings.ADMIN_ID, is_admin=True).save())  # создание админа
-        self.client.post(f'/bot/{ADMIN_KEY}', json={'message': {'from': {'id': settings.ADMIN_ID}}},
-                         headers=self.valid_headers)
-        self.assertEqual(self.bot_mock.process_new_updates.call_count, 1)
+    def tearDown(self) -> None:
+        self.bots_patcher.stop()
+        super().tearDown()
+

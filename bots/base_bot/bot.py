@@ -9,7 +9,7 @@ from aiogram.types import Update
 
 from consts import RedisDatabases
 from .handlers import BaseHandler
-from .middlewares import ErrorMiddleware
+from .middlewares import ErrorsMiddleware
 
 
 class BaseBot(abc.ABC):
@@ -36,7 +36,7 @@ class BaseBot(abc.ABC):
 
     def _register_middlewares(self):
         """Регистрация middlewares"""
-        self.dp.update.outer_middleware(ErrorMiddleware(self.bot))
+        self.dp.update.outer_middleware(ErrorsMiddleware(self.bot))
 
     def _register_handlers_first(self):
         """Регистрация хандлерор, которые должны выполняться всегда (в основном - обработчики команд)"""
