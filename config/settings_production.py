@@ -1,13 +1,11 @@
-import logging.config
 import os
 
-import dramatiq
 import redis
-from dramatiq.brokers.rabbitmq import RabbitmqBroker
-from dramatiq.middleware import AsyncIO
 
 from consts import RedisDatabases
 from bots import BaseBot
+from setup.dramatiq_config import configure_dramatiq
+from setup.logging_config import configure_logging
 
 
 class ProductionSettings:
@@ -39,58 +37,5 @@ class ProductionSettings:
         self.BASE_URL = f'https://{self.HOST}'  # если env.USE_NGROK = True, то BASE_URL заменяется на выданный ngrok
 
     def post_init(self):
-        self._configure_dramatiq()
-        self._configure_logging()
-
-    def _configure_dramatiq(self):
-        rabbitmq_broker = RabbitmqBroker(host=self.RABBITMQ_HOST, middleware=[AsyncIO()])
-        dramatiq.set_broker(rabbitmq_broker)
-
-    def _configure_logging(self):
-        logging_config = {
-            'version': 1,
-            'disable_existing_loggers': False,
-            'formatters': {
-                'verbose': {
-                    'format': '{levelname} {asctime} {module} {process:d} {thread:d} {name} {lineno} {message}',
-                    'style': '{',
-                },
-                'simple': {
-                    'format': '{levelname} {name} {lineno} {message}',
-                    'style': '{',
-                },
-                'django': {
-                    'format': 'django: %(message)s',
-                },
-            },
-            'handlers': {
-                'console': {
-                    'level': 'INFO',
-                    'formatter': 'verbose',
-                    'class': 'logging.StreamHandler',
-                },
-                'file': {
-                    'level': 'ERROR',
-                    'formatter': 'verbose',
-                    'class': 'logging.FileHandler',
-                    'filename': 'py_log.log',
-                },
-                'admin_sender': {
-                    'level': 'INFO',
-                    'formatter': 'verbose',
-                    'class': 'management.logging_handlers.AdminHandler',
-                },
-            },
-            'loggers': {
-                "admin": {
-                    "handlers": ["admin_sender"],
-                    "level": "INFO",
-                },
-            },
-            "root": {
-                "handlers": ["console", "file"],
-                "level": "INFO",
-            },
-        }
-
-        logging.config.dictConfig(logging_config)
+        configure_dramatiq(self.RABBITMQ_HOST)
+        configure_logging()

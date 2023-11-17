@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 
 import api
-from setup import init_bots, startup, shutdown
+from setup.init_bots import init_bots
+from setup.startup import startup
+from setup.shutdown import shutdown
 
 init_bots()
 
