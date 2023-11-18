@@ -29,8 +29,8 @@ async def startup() -> None:
         public_url = ngrok.connect(f"{settings.HOST}:{port}").public_url
         logger.info("ngrok tunnel \"{}\" -> \"http://{}:{}\"".format(public_url, settings.HOST, port))
 
-        # Update any base URLs or webhooks to use the public ngrok URL
-        settings.BASE_URL = public_url
+        # webhooks to use the public ngrok URL
+        settings.PUBLIC_URL = public_url
 
     for bot in settings.user_bots.values():
-        await bot.on_startapp(settings.BASE_URL, settings.SECRET_TOKEN)
+        await bot.on_startapp(settings.PUBLIC_URL, settings.SECRET_TOKEN, settings.SSL_PUBLIC_PATH)

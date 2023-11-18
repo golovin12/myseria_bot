@@ -32,9 +32,14 @@ class ProductionSettings:
 
         self.USE_NGROK = os.environ.get('USE_NGROK', 'False') == 'True'
 
-        self.HOST = '127.0.0.1'
-        self.PORT = 8000
-        self.BASE_URL = f'https://{self.HOST}'  # если env.USE_NGROK = True, то BASE_URL заменяется на выданный ngrok
+        # адрес локальной машины
+        self.HOST = os.environ.get('LOCAL_HOST', '127.0.0.1')  # адрес для запуска сервера uvicorn
+        self.PORT = 8000  # порт для запуска сервера uvicorn
+        # общедоступный адрес - если USE_NGROK = True, то PUBLIC_URL заменяется на выданный ngrok
+        self.PUBLIC_URL = os.environ.get('PUBLIC_URL', f'https://{self.HOST}')
+        # SSL
+        self.SSL_PUBLIC_PATH = os.environ.get('SSL_PUBLIC_PATH')
+        self.SSL_PRIVATE_PATH = os.environ.get('SSL_PRIVATE_PATH')
 
     def post_init(self):
         configure_dramatiq(self.RABBITMQ_HOST)

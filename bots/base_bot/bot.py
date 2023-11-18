@@ -5,7 +5,7 @@ import redis
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
-from aiogram.types import Update
+from aiogram.types import Update, BufferedInputFile
 
 from consts import RedisDatabases
 from .handlers import BaseHandler
@@ -48,8 +48,9 @@ class BaseBot(abc.ABC):
         for handler in self.handlers:
             handler.register_second()
 
-    async def on_startapp(self, url: str, secret_token: str):
-        await self.bot.set_webhook(f"{url}/bot/{self.name}", secret_token=secret_token,
+    async def on_startapp(self, url: str, secret_token: str, cert_path: str | None = None):
+        certificate = BufferedInputFile.from_file(cert_path, 'public.pem') if cert_path else None
+        await self.bot.set_webhook(f"{url}/bot/{self.name}", secret_token=secret_token, certificate=certificate,
                                    drop_pending_updates=self.skip_updates)
 
     async def on_shutdown(self):

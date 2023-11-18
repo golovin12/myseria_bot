@@ -8,4 +8,6 @@ if __name__ == "__main__":
         host=settings.HOST,
         port=settings.PORT,
         reload=True,
+        ssl_keyfile=settings.SSL_PRIVATE_PATH,
+        ssl_certfile=settings.SSL_PUBLIC_PATH,
     )

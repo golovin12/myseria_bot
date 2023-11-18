@@ -32,7 +32,10 @@ class TestSettings:
 
         self.HOST = '127.0.0.1'
         self.PORT = 8000
-        self.BASE_URL = f"https://{self.HOST}"
+        self.PUBLIC_URL = f"https://{self.HOST}"
+        # SSL
+        self.SSL_PUBLIC_PATH = None
+        self.SSL_PRIVATE_PATH = None
 
     @property
     def user_bots(self):
