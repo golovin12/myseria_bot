@@ -1,5 +1,7 @@
 ﻿*.pyc
-*.env
+*.env.docker
+*.env.local
+*.env.dev
 *.log
 *~
 *certs/

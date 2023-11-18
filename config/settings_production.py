@@ -10,7 +10,7 @@ from setup.logging_config import configure_logging
 
 class ProductionSettings:
     def __init__(self):
-        self.ENV_NAME = 'PRODUCTION'
+        self.ENV_NAME = os.getenv('ENV_NAME', 'localhost')
         self.REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
         self.RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
         # хранилище для database.models

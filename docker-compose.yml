@@ -35,6 +35,7 @@ services:
     environment:
       RABBITMQ_HOST: rabbitmq
       REDIS_HOST: redis
+      ENV_NAME: DOCKER
     depends_on:
       - redis
       - rabbitmq
@@ -50,6 +51,7 @@ services:
       environment:
         RABBITMQ_HOST: rabbitmq
         REDIS_HOST: redis
+        ENV_NAME: DOCKER
       depends_on:
         - redis
         - rabbitmq

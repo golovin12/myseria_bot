@@ -1,5 +1,3 @@
-import os
-
 import redis
 
 from consts import RedisDatabases
@@ -9,8 +7,8 @@ from bots import BaseBot
 class TestSettings:
     def __init__(self):
         self.ENV_NAME = 'TEST'
-        self.REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
-        self.RABBITMQ_HOST = os.getenv('RABBITMQ_HOST', 'localhost')
+        self.REDIS_HOST = 'localhost'
+        self.RABBITMQ_HOST = 'localhost'
         # хранилище для database.models
         self._aioredis = None
 

@@ -14,6 +14,6 @@ async def shutdown() -> None:
 
         if settings.USE_NGROK:
             from pyngrok import ngrok
-            ngrok.disconnect(settings.BASE_URL)
+            ngrok.disconnect(settings.PUBLIC_URL)
     except Exception as e:
         logger.exception(e)
