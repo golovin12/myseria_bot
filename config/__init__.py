@@ -20,7 +20,8 @@ else:
     elif env_name == 'LOCAL':
         # окружение для запуска на локальной машине без ngrok
         env_file_name = '.env.local'
-    load_dotenv(f'{BASE_DIR}/management/envs/{env_file_name}')
+    load_dotenv(f'{BASE_DIR}/management/envs/.env.base')  # токены, секретные ключи (чтобы не дублировать)
+    load_dotenv(f'{BASE_DIR}/management/envs/{env_file_name}')  # отличающиеся переменные
     settings = ProductionSettings()
 
 settings.post_init()

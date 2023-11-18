@@ -2,6 +2,7 @@
 *.env.docker
 *.env.local
 *.env.dev
+*.env.base
 *.log
 *~
 *certs/
