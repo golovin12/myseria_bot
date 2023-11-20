@@ -12,9 +12,10 @@ services:
       - ./management/certs/public.pem:/etc/ssl/private/public.pem:ro
       - ./management/certs/private.key:/etc/ssl/private/private.key:ro
     networks:
-      - network
+      - loadbalancing
     depends_on:
-      - bot
+      - bot1
+      - bot2
 
   rabbitmq:
     image: rabbitmq:3.12.8-management
@@ -43,7 +44,7 @@ services:
     expose:
       - 6379
 
-  bot:
+  bot1:
     build: .
     command: sh -c "python -m run"
     restart: always
@@ -56,6 +57,24 @@ services:
       - rabbitmq
     networks:
       - network
+      - loadbalancing
+    expose:
+      - 8000
+
+  bot2:
+    build: .
+    command: sh -c "python -m run"
+    restart: always
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      REDIS_HOST: redis
+      ENV_NAME: DOCKER
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - network
+      - loadbalancing
     expose:
       - 8000
 
@@ -79,3 +98,4 @@ volumes:
 
 networks:
   network:
+  loadbalancing:
