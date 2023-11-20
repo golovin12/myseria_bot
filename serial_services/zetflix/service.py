@@ -56,7 +56,7 @@ class ZetflixService(BaseSerialService):
         """Получение адреса сайта из бд"""
         zetflix_site = await SerialSite.get_object(self.serial_site_key)
         return zetflix_site.url
-    
+
     async def get_actual_url(self) -> str:
         """Получить актуальный адрес сайта"""
         host = await self.get_host()

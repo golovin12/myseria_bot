@@ -47,4 +47,3 @@ class BotApiTest(DBMockTestCase):
     def tearDown(self) -> None:
         self.bots_patcher.stop()
         super().tearDown()
-
