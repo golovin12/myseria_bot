@@ -7,7 +7,7 @@ if __name__ == "__main__":
         "main:app",
         host=settings.HOST,
         port=settings.PORT,
-        reload=True,
-        ssl_keyfile=settings.SSL_PRIVATE_PATH,
-        ssl_certfile=settings.SSL_PUBLIC_PATH,
     )
+    # для запуска на локальной машине добавить:
+    # ssl_keyfile=settings.SSL_PRIVATE_PATH,
+    # ssl_certfile=settings.SSL_PUBLIC_PATH,

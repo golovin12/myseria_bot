@@ -1,19 +1,34 @@
 version: '3.1'
 
 services:
+  balancer:
+    image: nginx:1.25.3
+    restart: always
+    ports:
+      - "8443:8443"
+    volumes:
+      - ./management/configurations/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./management/configurations/nginx_bot.conf:/etc/nginx/sites-enabled/nginx_bot.conf:ro
+      - ./management/certs/public.pem:/etc/ssl/private/public.pem:ro
+      - ./management/certs/private.key:/etc/ssl/private/private.key:ro
+    networks:
+      - network
+    depends_on:
+      - bot
+
   rabbitmq:
     image: rabbitmq:3.12.8-management
-    hostname: rabbitmq
     command: rabbitmq-server
     restart: always
     volumes:
       - rabbitmq:/var/lib/rabbitmq
-      - ./management/definitions.json:/etc/rabbitmq/definitions.json:ro
-      - ./management/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
-    expose:
-      - 5672
+      - ./management/configurations/definitions.json:/etc/rabbitmq/definitions.json:ro
+      - ./management/configurations/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    hostname: rabbitmq
     networks:
       - network
+    expose:
+      - 5672
     ports:
       - "15672:15672"
 
@@ -23,10 +38,10 @@ services:
     restart: always
     volumes:
       - redis:/var/lib/redis
-    expose:
-      - 6379
     networks:
       - network
+    expose:
+      - 6379
 
   bot:
     build: .
@@ -41,8 +56,8 @@ services:
       - rabbitmq
     networks:
       - network
-    ports:
-      - "8000:8000"
+    expose:
+      - 8000
 
   worker:
       build: .
