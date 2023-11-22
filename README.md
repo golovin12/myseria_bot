@@ -13,19 +13,19 @@
 * balancer
     - nginx
 * worker
-    - фреймворк - dramatiq
+    - dramatiq (фреймворк python)
 * queue
     - rabbitmq - брокер сообщений
 * web
-    - ASGI-сервер (uvicorn), фреймворк fastAPI
+    - ASGI-сервер (uvicorn), python фреймворк fastAPI
 * bots
-    - webhooks, фреймворк aiogram
+    - webhooks, python фреймворк aiogram
 * database
-    - redis - хранение данных пользователей
+    - redis - хранение данных пользователей (в планах заменить на PostgreSQL)
 * fsm-storage
     - redis - хранение состояний Telegram-ботов
 * log
-    - Логи записываются в файлы логов.
+    - rsyslog - логи отправляются в контейнер по UDP и сохраняются в файлы.
 
 ## Схема взаимодействия
 
@@ -33,7 +33,7 @@
 
 ## Запуск с помощью Docker
 
-> docker-compose up
+> docker-compose up -d
 
 ## Запуск с локальной машины:
 
