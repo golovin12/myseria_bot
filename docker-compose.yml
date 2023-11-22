@@ -44,6 +44,16 @@ services:
     expose:
       - 6379
 
+  syslog-storage:
+    image: vimagick/rsyslog
+    restart: always
+    volumes:
+      - "/var/log:/var/log"
+    networks:
+      - logging
+    expose:
+      - 514/udp
+
   bot1:
     build: .
     command: sh -c "python -m run"
@@ -53,10 +63,12 @@ services:
       REDIS_HOST: redis
       ENV_NAME: DOCKER
     depends_on:
+      - syslog-storage
       - redis
       - rabbitmq
     networks:
       - network
+      - logging
       - loadbalancing
     expose:
       - 8000
@@ -70,10 +82,12 @@ services:
       REDIS_HOST: redis
       ENV_NAME: DOCKER
     depends_on:
+      - syslog-storage
       - redis
       - rabbitmq
     networks:
       - network
+      - logging
       - loadbalancing
     expose:
       - 8000
@@ -87,10 +101,12 @@ services:
         REDIS_HOST: redis
         ENV_NAME: DOCKER
       depends_on:
+        - syslog-storage
         - redis
         - rabbitmq
       networks:
         - network
+        - logging
 
 volumes:
   redis:
@@ -99,3 +115,4 @@ volumes:
 networks:
   network:
   loadbalancing:
+  logging:

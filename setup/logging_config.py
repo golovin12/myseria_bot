@@ -19,11 +19,12 @@ LOGGING = {
             'formatter': 'verbose',
             'class': 'logging.StreamHandler',
         },
-        'file': {
-            'level': 'ERROR',
+        'external': {
+            'level': 'WARNING',
             'formatter': 'verbose',
-            'class': 'logging.FileHandler',
-            'filename': 'py_log.log',
+            'facility': 'local0',
+            'class': 'logging.handlers.SysLogHandler',
+            'address': ('syslog-storage', 514),
         },
         'admin_sender': {
             'level': 'INFO',
@@ -38,7 +39,7 @@ LOGGING = {
         },
     },
     "root": {
-        "handlers": ["console", "file"],
+        "handlers": ["console", "external"],
         "level": "INFO",
     },
 }
