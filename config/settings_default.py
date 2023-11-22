@@ -8,7 +8,7 @@ from setup.dramatiq_config import configure_dramatiq
 from setup.logging_config import configure_logging
 
 
-class ProductionSettings:
+class DefaultSettings:
     def __init__(self):
         self.ENV_NAME = os.getenv('ENV_NAME', 'localhost')
         self.REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
@@ -43,6 +43,39 @@ class ProductionSettings:
         self.SSL_PUBLIC_PATH = os.environ.get('SSL_PUBLIC_PATH')
         self.SSL_PRIVATE_PATH = os.environ.get('SSL_PRIVATE_PATH')
 
+        self.LOGGING = {
+            'version': 1,
+            'disable_existing_loggers': False,
+            'formatters': {
+                'verbose': {
+                    'format': '{levelname} {asctime} {module} {process:d} {thread:d} {name} {lineno}: {message}',
+                    'style': '{',
+                },
+                'simple': {
+                    'format': '{levelname} {asctime} {lineno}: {message}',
+                    'style': '{',
+                },
+            },
+            'handlers': {
+                'console': {
+                    'level': 'INFO',
+                    'formatter': 'verbose',
+                    'class': 'logging.StreamHandler',
+                },
+                'admin_sender': {
+                    'level': 'INFO',
+                    'formatter': 'simple',
+                    'class': 'management.logging_handlers.AdminHandler',
+                },
+            },
+            'loggers': {
+                'admin': {
+                    'handlers': ['admin_sender'],
+                    'level': 'INFO',
+                },
+            },
+        }
+
     def post_init(self):
         configure_dramatiq(self.RABBITMQ_HOST)
-        configure_logging()
+        configure_logging(self.LOGGING)

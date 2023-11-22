@@ -3,7 +3,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from .settings_production import ProductionSettings
+from .settings_docker import DockerSettings
+from .settings_local import LocalSettings
 from .settings_test import TestSettings
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -13,16 +14,19 @@ if env_name == 'TEST':
     # тестовое окружение
     settings = TestSettings()
 else:
-    env_file_name = '.env.dev'
-    if env_name == 'DOCKER':
-        # окружение для запуска через docker-compose без ngrok
-        env_file_name = '.env.docker'
-    elif env_name == 'LOCAL':
-        # окружение для запуска на локальной машине без ngrok
-        env_file_name = '.env.local'
+    match env_name:
+        case 'DOCKER':
+            env_file_name = '.env.docker'
+            settings_class = DockerSettings
+        case 'LOCAL':
+            env_file_name = '.env.local'
+            settings_class = LocalSettings
+        case _:
+            env_file_name = '.env.dev'
+            settings_class = LocalSettings
     load_dotenv(f'{BASE_DIR}/management/envs/.env.base')  # токены, секретные ключи (чтобы не дублировать)
     load_dotenv(f'{BASE_DIR}/management/envs/{env_file_name}')  # отличающиеся переменные
-    settings = ProductionSettings()
+    settings = settings_class()
 
 settings.post_init()
 
